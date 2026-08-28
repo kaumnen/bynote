@@ -1,0 +1,11 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+.react-router/
+.wrangler/
+build/
+coverage/
+node_modules/
+worker-configuration.d.ts
+*.tsbuildinfo
