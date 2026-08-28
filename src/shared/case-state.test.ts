@@ -17,7 +17,7 @@ function testContext(): MutationContext {
 
 const human: Actor = {
   id: "human-1",
-  name: "Mina",
+  name: "Alex",
   kind: "human",
 };
 
@@ -29,7 +29,7 @@ describe("case state", () => {
       title: "Draft disappears after reconnect",
       summary: "A saved draft is lost after the browser reconnects.",
       severity: "high",
-      creatorName: "Mina",
+      creatorName: "Alex",
       demo: false,
     });
     const initial = createCaseState("case-1", input, context);
@@ -55,6 +55,13 @@ describe("case state", () => {
       context,
     );
 
+    expect(initial.kind).toBe("bug");
+    expect(initial.sections.map(({ title }) => title)).toEqual([
+      "Repro",
+      "Expected / actual",
+      "Findings",
+      "Tasks",
+    ]);
     expect(withFinding.revision).toBe(2);
     expect(withFinding.entries.at(-1)?.kind).toBe("finding");
     expect(withTask.revision).toBe(3);
@@ -68,7 +75,7 @@ describe("case state", () => {
       "case-2",
       CreateCaseInputSchema.parse({
         title: "Checkout errors",
-        creatorName: "Mina",
+        creatorName: "Alex",
       }),
       context,
     );
@@ -114,14 +121,15 @@ describe("case state", () => {
     );
 
     expect(resolved.status).toBe("resolved");
-    expect(resolved.entries.at(-1)?.acceptedBy?.name).toBe("Mina");
+    expect(resolved.entries.at(-1)?.acceptedBy?.name).toBe("Alex");
   });
 
   it("creates a useful fresh demo", () => {
     const state = createCaseState(
       "demo-1",
       CreateCaseInputSchema.parse({
-        title: "Demo",
+        kind: "incident",
+        title: "Checkout errors after release 214",
         creatorName: "Guest",
         demo: true,
       }),
@@ -129,11 +137,93 @@ describe("case state", () => {
     );
 
     expect(state.kind).toBe("incident");
+    expect(state.title).toBe("Checkout errors after release 214");
     expect(state.entries).toHaveLength(3);
     expect(state.hypotheses).toHaveLength(1);
     expect(state.tasks).toHaveLength(1);
     expect(state.participants.some(({ actor }) => actor.kind === "agent")).toBe(
       true,
     );
+    expect(state).not.toHaveProperty("expiresAt");
+  });
+
+  it("creates filled bug and feature samples", () => {
+    const bug = createCaseState(
+      "demo-bug",
+      CreateCaseInputSchema.parse({
+        kind: "bug",
+        title: "Search results skip page two",
+        creatorName: "Guest",
+        demo: true,
+      }),
+      testContext(),
+    );
+    const feature = createCaseState(
+      "demo-feature",
+      CreateCaseInputSchema.parse({
+        kind: "feature",
+        title: "Saturday export drill",
+        creatorName: "Guest",
+        demo: true,
+      }),
+      testContext(),
+    );
+
+    expect(bug.kind).toBe("bug");
+    expect(bug.notes).toHaveLength(2);
+    expect(bug.entries.some(({ kind }) => kind === "finding")).toBe(true);
+    expect(feature.kind).toBe("feature");
+    expect(feature.title).toBe("Saturday export drill");
+    expect(feature.notes).toHaveLength(1);
+    expect(feature.decisions).toHaveLength(1);
+  });
+
+  it("lets an agent reshape custom sections", () => {
+    const context = testContext();
+    const initial = createCaseState(
+      "custom-1",
+      CreateCaseInputSchema.parse({
+        kind: "custom",
+        title: "Release notes",
+        creatorName: "Alex",
+      }),
+      context,
+    );
+
+    expect(initial.sections).toEqual([]);
+    expect(initial.entries).toEqual([]);
+    expect(initial.participants).toEqual([]);
+
+    const shaped = applyCaseAction(
+      initial,
+      {
+        type: "set_sections",
+        sections: [
+          { type: "note", title: "Summary" },
+          { type: "checklist", title: "Ship list" },
+        ],
+        actor: human,
+        source: "webmcp",
+      },
+      context,
+    );
+
+    expect(shaped.sections).toHaveLength(2);
+    expect(shaped.sections[0]?.title).toBe("Summary");
+
+    const noted = applyCaseAction(
+      shaped,
+      {
+        type: "add_note",
+        sectionId: shaped.sections[0]?.id ?? "",
+        body: "Ship after the canary is green.",
+        actor: human,
+        source: "human-ui",
+      },
+      context,
+    );
+
+    expect(noted.notes).toHaveLength(1);
+    expect(noted.notes[0]?.body).toContain("canary");
   });
 });

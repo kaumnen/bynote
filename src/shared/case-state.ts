@@ -1,9 +1,18 @@
+import {
+  DEMO_DEFAULTS,
+  isDemoKind,
+  resolveDemoTitle,
+  type DemoKind,
+} from "./demos";
+import { emptyNotebookLists, sectionsForTemplate } from "./templates";
 import type {
   Actor,
   CaseAction,
   CaseEntry,
   CaseState,
   CreateCaseInput,
+  NoteItem,
+  Section,
 } from "./schemas";
 
 export type MutationContext = {
@@ -35,31 +44,51 @@ function entry(
   return { id, kind, body, author, source, createdAt };
 }
 
-export function createCaseState(
-  caseId: string,
-  input: CreateCaseInput,
-  context: MutationContext = defaultMutationContext,
-): CaseState {
-  const now = context.now();
-  const creator = actor(context.id(), input.creatorName, "human");
+function noteItem(
+  id: string,
+  sectionId: string,
+  body: string,
+  author: Actor,
+  source: NoteItem["source"],
+  createdAt: string,
+): NoteItem {
+  return { id, sectionId, body, author, source, createdAt };
+}
 
-  if (input.demo) {
-    const lead = actor(context.id(), "Mina", "human");
-    const trace = actor(context.id(), "Trace", "agent");
-    const firstAt = timeBefore(now, 18);
-    const secondAt = timeBefore(now, 12);
-    const thirdAt = timeBefore(now, 7);
+function sectionByTitle(sections: Section[], title: string) {
+  return sections.find((section) => section.title === title);
+}
 
+function demoKindFor(input: CreateCaseInput): DemoKind {
+  return isDemoKind(input.kind) ? input.kind : "incident";
+}
+
+function demoSeed(
+  kind: DemoKind,
+  sections: Section[],
+  lead: Actor,
+  trace: Actor,
+  firstAt: string,
+  secondAt: string,
+  thirdAt: string,
+  context: MutationContext,
+): Pick<
+  CaseState,
+  | "status"
+  | "entries"
+  | "hypotheses"
+  | "tasks"
+  | "notes"
+  | "checklists"
+  | "decisions"
+> {
+  const lists = emptyNotebookLists();
+
+  if (kind === "incident") {
+    const resolution = sectionByTitle(sections, "Resolution");
     return {
-      id: caseId,
-      kind: "incident",
-      title: "Checkout errors after release 214",
-      summary:
-        "Checkout requests are returning errors in two regions. The issue started soon after a release.",
-      severity: "critical",
+      ...lists,
       status: "investigating",
-      createdAt: firstAt,
-      revision: 1,
       entries: [
         entry(
           context.id(),
@@ -104,13 +133,166 @@ export function createCaseState(
           id: context.id(),
           title: "Compare cache keys before and after release 214",
           status: "doing",
-          assignee: "Mina",
+          assignee: "Alex",
           author: trace,
           source: "webmcp",
           createdAt: thirdAt,
           updatedAt: thirdAt,
         },
       ],
+      decisions: resolution
+        ? [
+            noteItem(
+              context.id(),
+              resolution.id,
+              "If cache keys changed, roll back 214 or restore the old key format.",
+              trace,
+              "webmcp",
+              thirdAt,
+            ),
+          ]
+        : [],
+    };
+  }
+
+  if (kind === "bug") {
+    const repro = sectionByTitle(sections, "Repro");
+    const expected = sectionByTitle(sections, "Expected / actual");
+    return {
+      ...lists,
+      status: "investigating",
+      notes: [
+        ...(repro
+          ? [
+              noteItem(
+                context.id(),
+                repro.id,
+                "Open search, go to page 2. The ten results are a copy of page 1.",
+                lead,
+                "human-ui",
+                firstAt,
+              ),
+            ]
+          : []),
+        ...(expected
+          ? [
+              noteItem(
+                context.id(),
+                expected.id,
+                "Expected page 2. Actual: page 1 repeats. Refresh does not help.",
+                lead,
+                "human-ui",
+                secondAt,
+              ),
+            ]
+          : []),
+      ],
+      entries: [
+        entry(
+          context.id(),
+          "finding",
+          "The list query uses page as the offset instead of (page - 1) * size.",
+          trace,
+          "webmcp",
+          thirdAt,
+        ),
+      ],
+      tasks: [
+        {
+          id: context.id(),
+          title: "Confirm the offset math in the list query",
+          status: "doing",
+          assignee: "Alex",
+          author: trace,
+          source: "webmcp",
+          createdAt: thirdAt,
+          updatedAt: thirdAt,
+        },
+      ],
+    };
+  }
+
+  const goal = sectionByTitle(sections, "Goal");
+  const spec = sectionByTitle(sections, "Spec and decisions");
+  return {
+    ...lists,
+    status: "open",
+    notes: goal
+      ? [
+          noteItem(
+            context.id(),
+            goal.id,
+            "A JSON export that another Bynote tab can import. No account.",
+            lead,
+            "human-ui",
+            firstAt,
+          ),
+        ]
+      : [],
+    decisions: spec
+      ? [
+          noteItem(
+            context.id(),
+            spec.id,
+            "Keep the file on this device. A copied link will not fetch the notes.",
+            trace,
+            "webmcp",
+            secondAt,
+          ),
+        ]
+      : [],
+    tasks: [
+      {
+        id: context.id(),
+        title: "Draft the v1 file shape and import path",
+        status: "doing",
+        assignee: "Alex",
+        author: trace,
+        source: "webmcp",
+        createdAt: thirdAt,
+        updatedAt: thirdAt,
+      },
+    ],
+  };
+}
+
+export function createCaseState(
+  caseId: string,
+  input: CreateCaseInput,
+  context: MutationContext = defaultMutationContext,
+): CaseState {
+  const now = context.now();
+  const creator = actor(context.id(), input.creatorName, "human");
+
+  if (input.demo) {
+    const kind = demoKindFor(input);
+    const defaults = DEMO_DEFAULTS[kind];
+    const sections = sectionsForTemplate(kind, context.id);
+    const lead = actor(context.id(), "Alex", "human");
+    const trace = actor(context.id(), "Trace", "agent");
+    const firstAt = timeBefore(now, 18);
+    const secondAt = timeBefore(now, 12);
+    const thirdAt = timeBefore(now, 7);
+
+    return {
+      id: caseId,
+      kind,
+      title: resolveDemoTitle(kind, input.title),
+      summary: defaults.summary,
+      severity: defaults.severity,
+      createdAt: firstAt,
+      revision: 1,
+      sections,
+      ...demoSeed(
+        kind,
+        sections,
+        lead,
+        trace,
+        firstAt,
+        secondAt,
+        thirdAt,
+        context,
+      ),
       participants: [
         { actor: creator, lastSeenAt: now },
         { actor: lead, lastSeenAt: now },
@@ -118,6 +300,8 @@ export function createCaseState(
       ],
     };
   }
+
+  const sections = sectionsForTemplate(input.kind, context.id);
 
   return {
     id: caseId,
@@ -128,19 +312,9 @@ export function createCaseState(
     status: "open",
     createdAt: now,
     revision: 1,
-    entries: [
-      entry(
-        context.id(),
-        "update",
-        "Case opened.",
-        creator,
-        "human-ui",
-        now,
-      ),
-    ],
-    hypotheses: [],
-    tasks: [],
-    participants: [{ actor: creator, lastSeenAt: now }],
+    sections,
+    ...emptyNotebookLists(),
+    participants: [],
   };
 }
 
@@ -157,6 +331,29 @@ function withParticipant(state: CaseState, nextActor: Actor, now: string) {
 
 function appendEntry(state: CaseState, nextEntry: CaseEntry) {
   return [...state.entries, nextEntry].slice(-250);
+}
+
+function requireSection(
+  state: CaseState,
+  sectionId: string,
+  type: Section["type"],
+) {
+  const section = state.sections.find(({ id }) => id === sectionId);
+  if (!section || section.type !== type) {
+    throw new Error("Section not found");
+  }
+  return section;
+}
+
+function pruneForSections(state: CaseState, sections: Section[]): CaseState {
+  const ids = new Set(sections.map(({ id }) => id));
+  return {
+    ...state,
+    sections,
+    notes: state.notes.filter(({ sectionId }) => ids.has(sectionId)),
+    checklists: state.checklists.filter(({ sectionId }) => ids.has(sectionId)),
+    decisions: state.decisions.filter(({ sectionId }) => ids.has(sectionId)),
+  };
 }
 
 export function applyCaseAction(
@@ -326,5 +523,101 @@ export function applyCaseAction(
           ),
         ),
       };
+
+    case "add_note":
+      requireSection(state, action.sectionId, "note");
+      return {
+        ...base,
+        notes: [
+          ...state.notes,
+          noteItem(
+            context.id(),
+            action.sectionId,
+            action.body,
+            action.actor,
+            action.source,
+            now,
+          ),
+        ].slice(-100),
+      };
+
+    case "add_decision":
+      requireSection(state, action.sectionId, "decisions");
+      return {
+        ...base,
+        decisions: [
+          ...state.decisions,
+          noteItem(
+            context.id(),
+            action.sectionId,
+            action.body,
+            action.actor,
+            action.source,
+            now,
+          ),
+        ].slice(-100),
+      };
+
+    case "add_checklist_item":
+      requireSection(state, action.sectionId, "checklist");
+      return {
+        ...base,
+        checklists: [
+          ...state.checklists,
+          {
+            id: context.id(),
+            sectionId: action.sectionId,
+            title: action.title,
+            done: false,
+            author: action.actor,
+            source: action.source,
+            createdAt: now,
+            updatedAt: now,
+          },
+        ].slice(-200),
+      };
+
+    case "toggle_checklist_item": {
+      const item = state.checklists.find(({ id }) => id === action.itemId);
+      if (!item) {
+        throw new Error("Checklist item not found");
+      }
+
+      return {
+        ...base,
+        checklists: state.checklists.map((entryItem) =>
+          entryItem.id === action.itemId
+            ? { ...entryItem, done: !entryItem.done, updatedAt: now }
+            : entryItem,
+        ),
+      };
+    }
+
+    case "add_section": {
+      if (state.sections.length >= 20) {
+        throw new Error("A notebook can have 20 sections");
+      }
+
+      return {
+        ...base,
+        sections: [
+          ...state.sections,
+          {
+            id: context.id(),
+            type: action.sectionType,
+            title: action.title,
+          },
+        ],
+      };
+    }
+
+    case "set_sections": {
+      const sections = action.sections.map((section) => ({
+        id: context.id(),
+        type: section.type,
+        title: section.title,
+      }));
+      return pruneForSections(base, sections);
+    }
   }
 }

@@ -3,18 +3,14 @@
   "name": "byline",
   "main": "./workers/app.ts",
   "compatibility_date": "2026-08-28",
-  "durable_objects": {
-    "bindings": [
-      {
-        "name": "CASES",
-        "class_name": "CaseRoom"
-      }
-    ]
-  },
   "migrations": [
     {
       "tag": "v1",
       "new_sqlite_classes": ["CaseRoom"]
+    },
+    {
+      "tag": "v2",
+      "deleted_classes": ["CaseRoom"]
     }
   ],
   "observability": {

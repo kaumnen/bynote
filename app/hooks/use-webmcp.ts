@@ -1,50 +1,40 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import type {
-  Actor,
-  CaseAction,
-  CaseState,
-} from "../../src/shared/schemas";
-import { registerCaseTools } from "../webmcp/register-tools";
+import type { ModelContext } from "../webmcp/types";
 import "../webmcp/types";
 
-export type WebMcpStatus =
-  | "checking"
-  | "ready"
-  | "unavailable"
-  | "error";
+export type WebMcpStatus = "checking" | "ready" | "unavailable" | "error";
 
-type UseWebMcpOptions = {
-  actor: Actor;
-  getState: () => CaseState;
-  submit: (action: CaseAction) => Promise<CaseState>;
+export type WebMcpRegistration = {
+  ready: Promise<unknown>;
+  toolNames: string[];
+  dispose: () => void;
 };
 
-export function useWebMcp({
-  actor,
-  getState,
-  submit,
-}: UseWebMcpOptions) {
+export function useWebMcp(
+  register: (modelContext: ModelContext) => WebMcpRegistration,
+  enabled = true,
+  extraDeps: unknown[] = [],
+) {
   const [status, setStatus] = useState<WebMcpStatus>("checking");
+  const [toolCount, setToolCount] = useState(0);
+  const registerRef = useRef(register);
+  registerRef.current = register;
 
   useEffect(() => {
-    if (actor.id === "pending") {
+    if (!enabled) {
       return;
     }
 
     if (!document.modelContext) {
       setStatus("unavailable");
+      setToolCount(0);
       return;
     }
 
     setStatus("checking");
-    const registration = registerCaseTools({
-      modelContext: document.modelContext,
-      baseActor: actor,
-      getState,
-      submit,
-      storage: window.sessionStorage,
-    });
+    const registration = registerRef.current(document.modelContext);
+    setToolCount(registration.toolNames.length);
 
     registration.ready.then(
       () => setStatus("ready"),
@@ -52,7 +42,9 @@ export function useWebMcp({
     );
 
     return registration.dispose;
-  }, [actor.id, actor.name, getState, submit]);
+    // extraDeps lets callers re-register when closed-over identity changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, ...extraDeps]);
 
-  return status;
+  return { status, toolCount };
 }

@@ -47,10 +47,10 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   let detail = "Reload the page and try again.";
 
   if (isRouteErrorResponse(error)) {
-    title = error.status === 404 ? "Case not found" : "Request failed";
+    title = error.status === 404 ? "Notebook not found" : "Request failed";
     detail =
       error.status === 404
-        ? "Check the link or start a new case."
+        ? "Import a JSON export or start a new notebook."
         : error.statusText || detail;
   } else if (import.meta.env.DEV && error instanceof Error) {
     detail = error.message;
@@ -59,14 +59,14 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   return (
     <main className="error-page">
       <a className="wordmark" href="/">
-        BYLINE
+        BYNOTE
       </a>
       <section className="error-panel">
         <p className="eyebrow">Error</p>
         <h1>{title}</h1>
         <p>{detail}</p>
         <a className="button button-primary" href="/">
-          Start a case
+          Start a notebook
         </a>
       </section>
     </main>

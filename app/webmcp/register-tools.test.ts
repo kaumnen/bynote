@@ -35,14 +35,14 @@ describe("WebMCP tools", () => {
     };
     const baseActor: Actor = {
       id: "human-1",
-      name: "Mina",
+      name: "Alex",
       kind: "human",
     };
     let current = createCaseState(
       "case-1",
       CreateCaseInputSchema.parse({
         title: "Checkout errors",
-        creatorName: "Mina",
+        creatorName: "Alex",
       }),
       {
         now: () => "2026-08-28T12:00:00.000Z",
@@ -66,12 +66,18 @@ describe("WebMCP tools", () => {
     expect(registration.toolNames).toEqual([
       "read_case",
       "join_as_agent",
+      "set_sections",
+      "add_section",
       "add_finding",
       "add_hypothesis",
       "create_task",
       "update_task",
       "post_update",
       "propose_resolution",
+      "add_note",
+      "add_decision",
+      "add_checklist_item",
+      "toggle_checklist_item",
     ]);
     expect(tools.get("add_finding")?.inputSchema).toMatchObject({
       type: "object",

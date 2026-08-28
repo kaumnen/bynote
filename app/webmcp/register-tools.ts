@@ -36,9 +36,13 @@ function stateSummary(state: CaseState) {
     severity: state.severity,
     status: state.status,
     revision: state.revision,
+    sections: state.sections,
     entries: state.entries,
     hypotheses: state.hypotheses,
     tasks: state.tasks,
+    notes: state.notes,
+    checklists: state.checklists,
+    decisions: state.decisions,
     participants: state.participants,
   };
 }
@@ -56,7 +60,7 @@ export function registerCaseTools({
 }: RegisterCaseToolsOptions) {
   const controller = new AbortController();
   const agentNameKey = `byline.agent-name.${getState().id}`;
-  let agentName = storage?.getItem(agentNameKey) || "Browser agent";
+  let agentName = storage?.getItem(agentNameKey) || "Agent";
 
   const agentActor = (): Actor => ({
     id: `${baseActor.id}:agent`,
@@ -77,16 +81,16 @@ export function registerCaseTools({
     {
       name: "read_case",
       description:
-        "Read the complete active Byline case, including findings, hypotheses, tasks, status, and participants. Call this before changing the case.",
+        "Read the notebook open in this tab, including template, sections, notes, findings, hypotheses, tasks, and participants. Call this before changing the notebook. If you need a different notebook, call list_notebooks then open_notebook.",
       inputSchema: schema(toolInputSchemas.readCase),
       execute() {
-        return result("Current case", stateSummary(getState()));
+        return result("Current notebook", stateSummary(getState()));
       },
     },
     {
       name: "join_as_agent",
       description:
-        "Join the active case with an agent name. Call this before adding work so people can identify the agent.",
+        "Join the active notebook with an agent name. Call this before adding work so people can identify the agent.",
       inputSchema: schema(toolInputSchemas.joinAsAgent),
       async execute(input) {
         const parsed = toolInputSchemas.joinAsAgent.parse(input);
@@ -104,9 +108,45 @@ export function registerCaseTools({
       },
     },
     {
+      name: "set_sections",
+      description:
+        "Replace the notebook layout with an ordered list of sections. Allowed types: note, timeline, findings, hypotheses, tasks, checklist, decisions. Use this to organize a custom notebook. Do not invent CSS or HTML.",
+      inputSchema: schema(toolInputSchemas.setSections),
+      async execute(input) {
+        const parsed = toolInputSchemas.setSections.parse(input);
+        const state = await submit(
+          agentAction({ type: "set_sections", sections: parsed.sections }),
+        );
+        return result("Sections updated", {
+          sections: state.sections,
+          revision: state.revision,
+        });
+      },
+    },
+    {
+      name: "add_section",
+      description:
+        "Append one section to the notebook. Allowed types: note, timeline, findings, hypotheses, tasks, checklist, decisions.",
+      inputSchema: schema(toolInputSchemas.addSection),
+      async execute(input) {
+        const parsed = toolInputSchemas.addSection.parse(input);
+        const state = await submit(
+          agentAction({
+            type: "add_section",
+            sectionType: parsed.type,
+            title: parsed.title,
+          }),
+        );
+        return result("Section added", {
+          section: state.sections.at(-1),
+          revision: state.revision,
+        });
+      },
+    },
+    {
       name: "add_finding",
       description:
-        "Add verified evidence or an observed fact to the active case. Do not use this for an untested explanation.",
+        "Add verified evidence or an observed fact. Do not use this for an untested explanation.",
       inputSchema: schema(toolInputSchemas.addFinding),
       async execute(input) {
         const parsed = toolInputSchemas.addFinding.parse(input);
@@ -119,7 +159,7 @@ export function registerCaseTools({
     {
       name: "add_hypothesis",
       description:
-        "Add a possible explanation to the active case with supporting detail and a confidence level.",
+        "Add a possible explanation with supporting detail and a confidence level.",
       inputSchema: schema(toolInputSchemas.addHypothesis),
       async execute(input) {
         const parsed = toolInputSchemas.addHypothesis.parse(input);
@@ -131,8 +171,7 @@ export function registerCaseTools({
     },
     {
       name: "create_task",
-      description:
-        "Create a specific investigation or response task in the active case.",
+      description: "Create a specific task in the notebook.",
       inputSchema: schema(toolInputSchemas.createTask),
       async execute(input) {
         const parsed = toolInputSchemas.createTask.parse(input);
@@ -164,8 +203,7 @@ export function registerCaseTools({
     },
     {
       name: "post_update",
-      description:
-        "Post a concise progress update to the active case timeline.",
+      description: "Post a concise progress update to the timeline.",
       inputSchema: schema(toolInputSchemas.postUpdate),
       async execute(input) {
         const parsed = toolInputSchemas.postUpdate.parse(input);
@@ -178,7 +216,7 @@ export function registerCaseTools({
     {
       name: "propose_resolution",
       description:
-        "Propose a resolution for human review. This does not resolve the case. A person must accept the proposal in Byline.",
+        "Propose a resolution for human review. This does not resolve the notebook. A person must accept the proposal in Bynote.",
       inputSchema: schema(toolInputSchemas.proposeResolution),
       async execute(input) {
         const parsed = toolInputSchemas.proposeResolution.parse(input);
@@ -186,6 +224,78 @@ export function registerCaseTools({
           agentAction({ type: "propose_resolution", body: parsed.body }),
         );
         return result("Resolution proposed", { revision: state.revision });
+      },
+    },
+    {
+      name: "add_note",
+      description:
+        "Append text to a note section. Use the section ID from read_case.",
+      inputSchema: schema(toolInputSchemas.addNote),
+      async execute(input) {
+        const parsed = toolInputSchemas.addNote.parse(input);
+        const state = await submit(
+          agentAction({
+            type: "add_note",
+            sectionId: parsed.sectionId,
+            body: parsed.body,
+          }),
+        );
+        return result("Note added", { revision: state.revision });
+      },
+    },
+    {
+      name: "add_decision",
+      description:
+        "Record a decision in a decisions section. Use the section ID from read_case.",
+      inputSchema: schema(toolInputSchemas.addDecision),
+      async execute(input) {
+        const parsed = toolInputSchemas.addDecision.parse(input);
+        const state = await submit(
+          agentAction({
+            type: "add_decision",
+            sectionId: parsed.sectionId,
+            body: parsed.body,
+          }),
+        );
+        return result("Decision added", { revision: state.revision });
+      },
+    },
+    {
+      name: "add_checklist_item",
+      description:
+        "Add an item to a checklist section. Use the section ID from read_case.",
+      inputSchema: schema(toolInputSchemas.addChecklistItem),
+      async execute(input) {
+        const parsed = toolInputSchemas.addChecklistItem.parse(input);
+        const state = await submit(
+          agentAction({
+            type: "add_checklist_item",
+            sectionId: parsed.sectionId,
+            title: parsed.title,
+          }),
+        );
+        return result("Checklist item added", {
+          item: state.checklists.at(-1),
+          revision: state.revision,
+        });
+      },
+    },
+    {
+      name: "toggle_checklist_item",
+      description: "Toggle a checklist item done or not done.",
+      inputSchema: schema(toolInputSchemas.toggleChecklistItem),
+      async execute(input) {
+        const parsed = toolInputSchemas.toggleChecklistItem.parse(input);
+        const state = await submit(
+          agentAction({
+            type: "toggle_checklist_item",
+            itemId: parsed.itemId,
+          }),
+        );
+        return result("Checklist item updated", {
+          item: state.checklists.find(({ id }) => id === parsed.itemId),
+          revision: state.revision,
+        });
       },
     },
   ];

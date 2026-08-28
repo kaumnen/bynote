@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const CaseKindSchema = z.enum(["bug", "incident"]);
+export const CaseKindSchema = z.enum(["bug", "incident", "feature", "custom"]);
 export const CaseStatusSchema = z.enum([
   "open",
   "investigating",
@@ -11,6 +11,15 @@ export const SeveritySchema = z.enum(["low", "medium", "high", "critical"]);
 export const ConfidenceSchema = z.enum(["low", "medium", "high"]);
 export const TaskStatusSchema = z.enum(["open", "doing", "done"]);
 export const ActionSourceSchema = z.enum(["human-ui", "webmcp"]);
+export const SectionTypeSchema = z.enum([
+  "note",
+  "timeline",
+  "findings",
+  "hypotheses",
+  "tasks",
+  "checklist",
+  "decisions",
+]);
 
 export const ActorSchema = z
   .object({
@@ -28,6 +37,14 @@ export const CreateCaseInputSchema = z
     severity: SeveritySchema.default("high"),
     creatorName: z.string().trim().min(1).max(48).default("Guest"),
     demo: z.boolean().default(false),
+  })
+  .strict();
+
+export const SectionSchema = z
+  .object({
+    id: z.string().min(1).max(100),
+    type: SectionTypeSchema,
+    title: z.string().trim().min(1).max(80),
   })
   .strict();
 
@@ -83,6 +100,30 @@ export const ParticipantSchema = z
   })
   .strict();
 
+export const NoteItemSchema = z
+  .object({
+    id: z.string(),
+    sectionId: z.string(),
+    body: z.string(),
+    author: ActorSchema,
+    source: ActionSourceSchema,
+    createdAt: z.string(),
+  })
+  .strict();
+
+export const ChecklistItemSchema = z
+  .object({
+    id: z.string(),
+    sectionId: z.string(),
+    title: z.string(),
+    done: z.boolean(),
+    author: ActorSchema,
+    source: ActionSourceSchema,
+    createdAt: z.string(),
+    updatedAt: z.string(),
+  })
+  .strict();
+
 export const CaseStateSchema = z
   .object({
     id: z.string(),
@@ -93,10 +134,24 @@ export const CaseStateSchema = z
     status: CaseStatusSchema,
     createdAt: z.string(),
     revision: z.number().int().nonnegative(),
+    sections: z.array(SectionSchema),
     entries: z.array(CaseEntrySchema),
     hypotheses: z.array(HypothesisSchema),
     tasks: z.array(CaseTaskSchema),
+    notes: z.array(NoteItemSchema),
+    checklists: z.array(ChecklistItemSchema),
+    decisions: z.array(NoteItemSchema),
     participants: z.array(ParticipantSchema),
+  })
+  .strict();
+
+export const NOTEBOOK_FILE_FORMAT = "bynote.notebook.v1" as const;
+export const LEGACY_NOTEBOOK_FILE_FORMAT = "byline.notebook.v1" as const;
+
+export const NotebookFileSchema = z
+  .object({
+    format: z.enum([NOTEBOOK_FILE_FORMAT, LEGACY_NOTEBOOK_FILE_FORMAT]),
+    notebook: CaseStateSchema,
   })
   .strict();
 
@@ -172,6 +227,62 @@ export const CaseActionSchema = z.discriminatedUnion("type", [
       ...actionBase,
     })
     .strict(),
+  z
+    .object({
+      type: z.literal("add_note"),
+      sectionId: z.string().min(1).max(100),
+      body: z.string().trim().min(1).max(4_000),
+      ...actionBase,
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("add_decision"),
+      sectionId: z.string().min(1).max(100),
+      body: z.string().trim().min(1).max(4_000),
+      ...actionBase,
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("add_checklist_item"),
+      sectionId: z.string().min(1).max(100),
+      title: z.string().trim().min(1).max(240),
+      ...actionBase,
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("toggle_checklist_item"),
+      itemId: z.string().min(1).max(100),
+      ...actionBase,
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("add_section"),
+      sectionType: SectionTypeSchema,
+      title: z.string().trim().min(1).max(80),
+      ...actionBase,
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("set_sections"),
+      sections: z
+        .array(
+          z
+            .object({
+              type: SectionTypeSchema,
+              title: z.string().trim().min(1).max(80),
+            })
+            .strict(),
+        )
+        .min(0)
+        .max(20),
+      ...actionBase,
+    })
+    .strict(),
 ]);
 
 export const toolInputSchemas = {
@@ -215,6 +326,63 @@ export const toolInputSchemas = {
       body: z.string().trim().min(1).max(2_000),
     })
     .strict(),
+  addNote: z
+    .object({
+      sectionId: z.string().min(1).max(100),
+      body: z.string().trim().min(1).max(4_000),
+    })
+    .strict(),
+  addDecision: z
+    .object({
+      sectionId: z.string().min(1).max(100),
+      body: z.string().trim().min(1).max(4_000),
+    })
+    .strict(),
+  addChecklistItem: z
+    .object({
+      sectionId: z.string().min(1).max(100),
+      title: z.string().trim().min(1).max(240),
+    })
+    .strict(),
+  toggleChecklistItem: z
+    .object({
+      itemId: z.string().min(1).max(100),
+    })
+    .strict(),
+  addSection: z
+    .object({
+      type: SectionTypeSchema,
+      title: z.string().trim().min(1).max(80),
+    })
+    .strict(),
+  setSections: z
+    .object({
+      sections: z
+        .array(
+          z
+            .object({
+              type: SectionTypeSchema,
+              title: z.string().trim().min(1).max(80),
+            })
+            .strict(),
+        )
+        .max(20),
+    })
+    .strict(),
+  listNotebooks: z.object({}).strict(),
+  openNotebook: z
+    .object({
+      notebookId: z.string().min(1).max(100),
+    })
+    .strict(),
+  createNotebook: z
+    .object({
+      kind: CaseKindSchema.default("custom"),
+      title: z.string().trim().min(3).max(120),
+      summary: z.string().trim().max(600).default(""),
+      severity: SeveritySchema.optional(),
+    })
+    .strict(),
 } as const;
 
 export type Actor = z.infer<typeof ActorSchema>;
@@ -222,5 +390,10 @@ export type CaseAction = z.infer<typeof CaseActionSchema>;
 export type CaseEntry = z.infer<typeof CaseEntrySchema>;
 export type CaseState = z.infer<typeof CaseStateSchema>;
 export type CaseTask = z.infer<typeof CaseTaskSchema>;
+export type ChecklistItem = z.infer<typeof ChecklistItemSchema>;
 export type CreateCaseInput = z.infer<typeof CreateCaseInputSchema>;
 export type Hypothesis = z.infer<typeof HypothesisSchema>;
+export type NoteItem = z.infer<typeof NoteItemSchema>;
+export type NotebookFile = z.infer<typeof NotebookFileSchema>;
+export type Section = z.infer<typeof SectionSchema>;
+export type SectionType = z.infer<typeof SectionTypeSchema>;

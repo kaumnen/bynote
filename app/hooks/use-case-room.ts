@@ -1,22 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { applyCaseAction } from "../../src/shared/case-state";
 import {
   CaseStateSchema,
   type CaseAction,
   type CaseState,
 } from "../../src/shared/schemas";
-import {
-  caseSocketUrl,
-  fetchCase,
-  sendCaseAction,
-} from "../lib/case-client";
-
-export type ConnectionStatus = "connecting" | "live" | "offline";
+import { writeLocalNotebook } from "../lib/local-notebook";
 
 export function useCaseRoom(initialState: CaseState) {
   const [state, setState] = useState(initialState);
-  const [connection, setConnection] =
-    useState<ConnectionStatus>("connecting");
   const stateRef = useRef(initialState);
 
   const updateState = useCallback((next: CaseState) => {
@@ -26,17 +19,14 @@ export function useCaseRoom(initialState: CaseState) {
     }
   }, []);
 
-  const submit = useCallback(
-    async (action: CaseAction) => {
-      const next = await sendCaseAction(initialState.id, action);
-      updateState(next);
-      return next;
-    },
-    [initialState.id, updateState],
-  );
-
-  const refresh = useCallback(async () => {
-    const next = await fetchCase(initialState.id);
+  const submit = useCallback(async (action: CaseAction) => {
+    const next = applyCaseAction(stateRef.current, action);
+    writeLocalNotebook(next);
+    if (typeof BroadcastChannel !== "undefined") {
+      const channel = new BroadcastChannel(`byline:${initialState.id}`);
+      channel.postMessage(next);
+      channel.close();
+    }
     updateState(next);
     return next;
   }, [initialState.id, updateState]);
@@ -44,70 +34,24 @@ export function useCaseRoom(initialState: CaseState) {
   const getState = useCallback(() => stateRef.current, []);
 
   useEffect(() => {
-    let socket: WebSocket | null = null;
-    let retry: ReturnType<typeof setTimeout> | null = null;
-    let closed = false;
+    if (typeof BroadcastChannel === "undefined") {
+      return;
+    }
 
-    const connect = () => {
-      setConnection("connecting");
-      socket = new WebSocket(caseSocketUrl(initialState.id));
-
-      socket.addEventListener("open", () => {
-        setConnection("live");
-      });
-
-      socket.addEventListener("message", (event) => {
-        if (typeof event.data !== "string") {
-          return;
-        }
-
-        try {
-          const message: unknown = JSON.parse(event.data);
-          if (
-            typeof message === "object" &&
-            message !== null &&
-            "type" in message &&
-            message.type === "case.updated" &&
-            "state" in message
-          ) {
-            const parsed = CaseStateSchema.safeParse(message.state);
-            if (parsed.success) {
-              updateState(parsed.data);
-            }
-          }
-        } catch {
-          setConnection("offline");
-        }
-      });
-
-      socket.addEventListener("close", () => {
-        setConnection("offline");
-        if (!closed) {
-          retry = setTimeout(connect, 1_500);
-        }
-      });
-
-      socket.addEventListener("error", () => {
-        setConnection("offline");
-      });
-    };
-
-    connect();
-
-    return () => {
-      closed = true;
-      if (retry) {
-        clearTimeout(retry);
+    const channel = new BroadcastChannel(`byline:${initialState.id}`);
+    channel.addEventListener("message", (event) => {
+      const parsed = CaseStateSchema.safeParse(event.data);
+      if (parsed.success) {
+        updateState(parsed.data);
       }
-      socket?.close(1000, "Page closed");
-    };
+    });
+
+    return () => channel.close();
   }, [initialState.id, updateState]);
 
   return {
     state,
-    connection,
     submit,
-    refresh,
     getState,
   };
 }
