@@ -9,6 +9,7 @@ import { Link, useLocation, useNavigate } from "react-router";
 import { readStoredActorName, useActor } from "../hooks/use-actor";
 import { useCaseRoom } from "../hooks/use-case-room";
 import { useWebMcp } from "../hooks/use-webmcp";
+import { HowItWorks } from "../components/how-it-works";
 import { SiteFooter } from "../components/site-footer";
 import {
   clearOpenNotebook,
@@ -474,6 +475,7 @@ function NotebookWorkspace({ initialState }: { initialState: CaseState }) {
             BYNOTE
           </Link>
           <div className="header-actions">
+            <HowItWorks />
             <button
               className="text-button"
               type="button"

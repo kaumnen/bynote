@@ -22,6 +22,7 @@ import {
 } from "../../src/shared/demos";
 import { readStoredActorName } from "../hooks/use-actor";
 import { useWebMcp } from "../hooks/use-webmcp";
+import { HowItWorks } from "../components/how-it-works";
 import { SiteFooter } from "../components/site-footer";
 import { libraryAgentPrompt } from "../webmcp/prompts";
 import { registerLibraryTools } from "../webmcp/register-library-tools";
@@ -242,7 +243,10 @@ export default function Home(_props: Route.ComponentProps) {
         <a className="wordmark" href="/">
           BYNOTE
         </a>
-        <p>Local agent notebook</p>
+        <div className="site-header-actions">
+          <p>Local agent notebook</p>
+          <HowItWorks />
+        </div>
       </header>
 
       <section className="launcher">
