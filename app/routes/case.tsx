@@ -839,7 +839,7 @@ function NotebookSection({
                     <option value="doing">Doing</option>
                     <option value="done">Done</option>
                   </select>
-                  <span className="task-byline">
+                  <span className="task-credit">
                     <small className="author-mini">
                       <i aria-hidden="true">
                         {task.author.kind === "agent" ? "A" : "H"}
@@ -1560,7 +1560,7 @@ function EntryList({
   acceptResolution: (entryId: string) => Promise<void>;
 }) {
   return (
-    <ol className="byline-rail">
+    <ol className="entry-rail">
       {items.map((item) => (
         <li
           key={item.id}

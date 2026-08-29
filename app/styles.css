@@ -1239,7 +1239,7 @@ textarea::placeholder {
   border-width: 0 0 0 1px;
 }
 
-.byline-rail,
+.entry-rail,
 .focus-list,
 .task-list {
   margin: 0;
@@ -1247,12 +1247,12 @@ textarea::placeholder {
   list-style: none;
 }
 
-.byline-rail {
+.entry-rail {
   position: relative;
   margin-left: 11px;
 }
 
-.byline-rail::before {
+.entry-rail::before {
   position: absolute;
   top: 0;
   bottom: 0;
@@ -1930,16 +1930,16 @@ textarea::placeholder {
   color: #00776c;
 }
 
-.task-byline {
+.task-credit {
   display: grid;
   justify-items: end;
 }
 
-.task-byline .author-mini {
+.task-credit .author-mini {
   margin-top: 0;
 }
 
-.task-byline > small:last-child:not(.author-mini) {
+.task-credit > small:last-child:not(.author-mini) {
   margin-top: 5px;
 }
 

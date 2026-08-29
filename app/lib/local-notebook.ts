@@ -14,8 +14,10 @@ import {
   type CreateCaseInput,
 } from "../../src/shared/schemas";
 
-const STORAGE_PREFIX = "byline:notebook:";
-const OPEN_KEY = "byline:open";
+const STORAGE_PREFIX = "bynote:notebook:";
+const OPEN_KEY = "bynote:open";
+const LEGACY_STORAGE_PREFIX = "byline:notebook:";
+const LEGACY_OPEN_KEY = "byline:open";
 const LEGACY_DEMO_NAME = "Mina";
 const NEUTRAL_NAME = "Alex";
 
@@ -31,6 +33,41 @@ export type NotebookSummary = {
 
 function storageKey(notebookId: string) {
   return `${STORAGE_PREFIX}${notebookId}`;
+}
+
+function migrateLegacyStorage() {
+  if (typeof localStorage !== "undefined") {
+    const legacyKeys: string[] = [];
+    for (let index = 0; index < localStorage.length; index += 1) {
+      const key = localStorage.key(index);
+      if (key?.startsWith(LEGACY_STORAGE_PREFIX)) {
+        legacyKeys.push(key);
+      }
+    }
+    for (const key of legacyKeys) {
+      const notebookId = key.slice(LEGACY_STORAGE_PREFIX.length);
+      const value = localStorage.getItem(key);
+      const nextKey = storageKey(notebookId);
+      if (value != null && localStorage.getItem(nextKey) == null) {
+        localStorage.setItem(nextKey, value);
+      }
+      localStorage.removeItem(key);
+    }
+  }
+
+  if (typeof sessionStorage === "undefined") {
+    return;
+  }
+
+  try {
+    const openId = sessionStorage.getItem(LEGACY_OPEN_KEY);
+    if (openId && sessionStorage.getItem(OPEN_KEY) == null) {
+      sessionStorage.setItem(OPEN_KEY, openId);
+    }
+    sessionStorage.removeItem(LEGACY_OPEN_KEY);
+  } catch {
+    return;
+  }
 }
 
 function renameActor(actor: CaseState["participants"][number]["actor"]) {
@@ -120,6 +157,7 @@ export function openDemoNotebook(input: {
 }
 
 export function readLocalNotebook(notebookId: string) {
+  migrateLegacyStorage();
   if (typeof localStorage === "undefined") {
     return null;
   }
@@ -143,10 +181,12 @@ export function readLocalNotebook(notebookId: string) {
 }
 
 export function writeLocalNotebook(state: CaseState) {
+  migrateLegacyStorage();
   localStorage.setItem(storageKey(state.id), JSON.stringify(state));
 }
 
 export function removeLocalNotebook(notebookId: string) {
+  migrateLegacyStorage();
   if (typeof localStorage === "undefined") {
     return;
   }
@@ -158,6 +198,7 @@ export function removeLocalNotebook(notebookId: string) {
 }
 
 export function readOpenNotebookId() {
+  migrateLegacyStorage();
   if (typeof sessionStorage === "undefined") {
     return null;
   }
@@ -171,6 +212,7 @@ export function readOpenNotebookId() {
 }
 
 export function setOpenNotebook(notebookId: string) {
+  migrateLegacyStorage();
   if (typeof sessionStorage === "undefined" || !isNotebookId(notebookId)) {
     return;
   }
@@ -202,6 +244,7 @@ export function openNotebookInTab(notebookId: string) {
 }
 
 export function clearOpenNotebook() {
+  migrateLegacyStorage();
   if (typeof sessionStorage === "undefined") {
     return;
   }
@@ -214,6 +257,7 @@ export function clearOpenNotebook() {
 }
 
 export function listLocalNotebooks(): NotebookSummary[] {
+  migrateLegacyStorage();
   if (typeof localStorage === "undefined") {
     return [];
   }

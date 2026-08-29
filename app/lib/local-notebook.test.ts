@@ -122,6 +122,22 @@ describe("notebook export", () => {
     expect(readLocalNotebook(imported.id)?.sections).toHaveLength(1);
   });
 
+  it("moves notebooks stored under the old prefix", () => {
+    installMemoryStorage();
+    const state = createCaseState(
+      "abc123abc123abc123abc123abc123ab",
+      CreateCaseInputSchema.parse({
+        kind: "custom",
+        title: "Moved notebook",
+        creatorName: "Alex",
+      }),
+    );
+    localStorage.setItem(`byline:notebook:${state.id}`, JSON.stringify(state));
+    expect(readLocalNotebook(state.id)?.title).toBe("Moved notebook");
+    expect(localStorage.getItem(`byline:notebook:${state.id}`)).toBeNull();
+    expect(localStorage.getItem(`bynote:notebook:${state.id}`)).toBeTruthy();
+  });
+
   it("rewrites stored demo name Mina to Alex", () => {
     installMemoryStorage();
     const state = createLocalNotebook(
@@ -132,7 +148,7 @@ describe("notebook export", () => {
       }),
     );
     localStorage.setItem(
-      `byline:notebook:${state.id}`,
+      `bynote:notebook:${state.id}`,
       JSON.stringify({
         ...state,
         participants: [

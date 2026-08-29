@@ -23,7 +23,7 @@ export function useCaseRoom(initialState: CaseState) {
     const next = applyCaseAction(stateRef.current, action);
     writeLocalNotebook(next);
     if (typeof BroadcastChannel !== "undefined") {
-      const channel = new BroadcastChannel(`byline:${initialState.id}`);
+      const channel = new BroadcastChannel(`bynote:${initialState.id}`);
       channel.postMessage(next);
       channel.close();
     }
@@ -38,7 +38,7 @@ export function useCaseRoom(initialState: CaseState) {
       return;
     }
 
-    const channel = new BroadcastChannel(`byline:${initialState.id}`);
+    const channel = new BroadcastChannel(`bynote:${initialState.id}`);
     channel.addEventListener("message", (event) => {
       const parsed = CaseStateSchema.safeParse(event.data);
       if (parsed.success) {

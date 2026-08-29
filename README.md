@@ -4,8 +4,6 @@ A notebook for people and agents. It lives in this browser. Nothing is sent to a
 
 Plans, campaigns, meetings. Incidents, bugs, features. Or a blank page. Notes, tasks or diagrams sit on one page. Export a JSON file to move it.
 
-The git folder and some storage keys still say `byline`. The product name is Bynote.
-
 ## Use
 
 1. Open the home page.
@@ -203,12 +201,12 @@ All of this is on the device. The Cloudflare worker only serves the app.
 
 | Key | Where | What |
 | --- | --- | --- |
-| `byline:notebook:{id}` | `localStorage` | Full notebook JSON |
-| `byline:open` | `sessionStorage` | Notebook id for this tab |
-| `byline.actor` | `localStorage` | Your id and name. Default name `Guest`. Max 48 chars. |
-| `byline.agent-name.{id}` | `sessionStorage` | Agent name for that notebook |
+| `bynote:notebook:{id}` | `localStorage` | Full notebook JSON |
+| `bynote:open` | `sessionStorage` | Notebook id for this tab |
+| `bynote.actor` | `localStorage` | Your id and name. Default name `Guest`. Max 48 chars. |
+| `bynote.agent-name.{id}` | `sessionStorage` | Agent name for that notebook |
 
-Same-origin tabs on the same notebook sync over `BroadcastChannel` named `byline:{id}`.
+Same-origin tabs on the same notebook sync over `BroadcastChannel` named `bynote:{id}`.
 
 A bad stored notebook is dropped on read.
 

@@ -66,8 +66,12 @@ export function registerCaseTools({
   storage,
 }: RegisterCaseToolsOptions) {
   const controller = new AbortController();
-  const agentNameKey = `byline.agent-name.${getState().id}`;
-  let agentName = storage?.getItem(agentNameKey) || "Agent";
+  const agentNameKey = `bynote.agent-name.${getState().id}`;
+  const legacyAgentNameKey = `byline.agent-name.${getState().id}`;
+  let agentName =
+    storage?.getItem(agentNameKey) ||
+    storage?.getItem(legacyAgentNameKey) ||
+    "Agent";
 
   const agentActor = (): Actor => ({
     id: `${baseActor.id}:agent`,

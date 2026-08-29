@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "byline",
+      "name": "bynote",
       "dependencies": {
         "isbot": "^5",
         "mermaid": "^11.17.2",

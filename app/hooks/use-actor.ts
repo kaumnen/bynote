@@ -2,7 +2,28 @@ import { useEffect, useState } from "react";
 
 import type { Actor } from "../../src/shared/schemas";
 
-const ACTOR_KEY = "byline.actor";
+const ACTOR_KEY = "bynote.actor";
+const LEGACY_ACTOR_KEY = "byline.actor";
+
+function readActorRecord() {
+  if (typeof localStorage === "undefined") {
+    return null;
+  }
+
+  const current = localStorage.getItem(ACTOR_KEY);
+  if (current) {
+    return current;
+  }
+
+  const legacy = localStorage.getItem(LEGACY_ACTOR_KEY);
+  if (!legacy) {
+    return null;
+  }
+
+  localStorage.setItem(ACTOR_KEY, legacy);
+  localStorage.removeItem(LEGACY_ACTOR_KEY);
+  return legacy;
+}
 
 export function readStoredActorName() {
   if (typeof localStorage === "undefined") {
@@ -10,7 +31,7 @@ export function readStoredActorName() {
   }
 
   try {
-    const stored = localStorage.getItem(ACTOR_KEY);
+    const stored = readActorRecord();
     if (!stored) {
       return "Guest";
     }
@@ -36,7 +57,7 @@ export function useActor() {
 
   useEffect(() => {
     try {
-      const stored = window.localStorage.getItem(ACTOR_KEY);
+      const stored = readActorRecord();
       if (stored) {
         const value = JSON.parse(stored) as Partial<Actor>;
         if (
@@ -52,6 +73,7 @@ export function useActor() {
               ACTOR_KEY,
               JSON.stringify(currentActor),
             );
+            window.localStorage.removeItem(LEGACY_ACTOR_KEY);
           }
           setCurrent(currentActor);
           return;
@@ -64,6 +86,7 @@ export function useActor() {
         kind: "human",
       };
       window.localStorage.setItem(ACTOR_KEY, JSON.stringify(created));
+      window.localStorage.removeItem(LEGACY_ACTOR_KEY);
       setCurrent(created);
     } catch {
       setCurrent({
@@ -82,6 +105,7 @@ export function useActor() {
     setCurrent(next);
     try {
       window.localStorage.setItem(ACTOR_KEY, JSON.stringify(next));
+      window.localStorage.removeItem(LEGACY_ACTOR_KEY);
     } catch {
       return;
     }
