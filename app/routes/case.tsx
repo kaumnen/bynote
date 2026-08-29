@@ -14,6 +14,7 @@ import { useWebMcp } from "../hooks/use-webmcp";
 import { HowItWorks } from "../components/how-it-works";
 import { MarkdownBody } from "../components/markdown-body";
 import { SiteFooter } from "../components/site-footer";
+import { SiteHeader } from "../components/site-header";
 import {
   clearOpenNotebook,
   createLocalNotebook,
@@ -228,7 +229,7 @@ function NotebookWorkspace({ initialState }: { initialState: CaseState }) {
   const [sectionType, setSectionType] = useState<SectionType>("note");
   const [sectionTitle, setSectionTitle] = useState("");
   const [authorFilter, setAuthorFilter] = useState("all");
-  const [pendingDelete, setPendingDelete] = useState(false);
+  const deleteDialog = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
     setNameDraft(actor.name);
@@ -414,14 +415,14 @@ function NotebookWorkspace({ initialState }: { initialState: CaseState }) {
     }
   };
 
-  const deleteNotebook = () => {
-    if (!pendingDelete) {
-      setPendingDelete(true);
-      return;
-    }
-
+  const deleteNotebook = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     removeLocalNotebook(room.state.id);
     window.location.href = "/";
+  };
+
+  const closeDeleteDialog = () => {
+    deleteDialog.current?.close();
   };
 
   const showAuthors = authors.length > 1;
@@ -436,7 +437,7 @@ function NotebookWorkspace({ initialState }: { initialState: CaseState }) {
           <span>{room.state.sections.length}/20</span>
         ) : null}
       </div>
-      <div className="form-row">
+      <div className="add-section-row">
         <label className="field">
           <span>Type</span>
           <select
@@ -463,57 +464,45 @@ function NotebookWorkspace({ initialState }: { initialState: CaseState }) {
             }
           />
         </label>
+        <button
+          className="button button-secondary"
+          type="submit"
+          disabled={busy || actor.id === "pending"}
+        >
+          Add section
+        </button>
       </div>
-      <button
-        className="button button-secondary"
-        type="submit"
-        disabled={busy || !sectionTitle.trim() || actor.id === "pending"}
-      >
-        Add section
-      </button>
     </form>
   );
 
   return (
     <main className="case-page">
+      <SiteHeader>
+        <HowItWorks />
+        <button
+          className="button-quiet"
+          type="button"
+          title="Downloads a JSON file. A copied link does not include your notes."
+          onClick={() => downloadNotebook(room.state)}
+        >
+          Export
+        </button>
+        <button
+          className="button-danger"
+          type="button"
+          onClick={() => deleteDialog.current?.showModal()}
+        >
+          Delete
+        </button>
+      </SiteHeader>
       <div className="case-page-body">
-      <header className="case-header">
-        <div className="case-header-top">
-          <Link className="wordmark" to="/">
-            BYNOTE
-          </Link>
-          <div className="header-actions">
-            <HowItWorks />
-            <button
-              className="text-button"
-              type="button"
-              title="Download a JSON file to move or share this notebook. A copied link does not include your notes."
-              onClick={() => downloadNotebook(room.state)}
-            >
-              Export
-            </button>
-            <button
-              className={
-                pendingDelete
-                  ? "text-button notebook-delete-confirm"
-                  : "text-button"
-              }
-              type="button"
-              onClick={deleteNotebook}
-              onBlur={() => setPendingDelete(false)}
-            >
-              {pendingDelete ? "Confirm delete" : "Delete"}
-            </button>
-          </div>
-        </div>
-
         <div className="case-title-row">
           <div>
             <p className="eyebrow">
               {notebookKind}
               {showSeverity
                 ? ` · ${severityLabel(room.state.severity)} severity`
-                : " notebook"}
+                : null}
             </p>
             <h1>{room.state.title}</h1>
             {room.state.summary ? <p>{room.state.summary}</p> : null}
@@ -538,7 +527,7 @@ function NotebookWorkspace({ initialState }: { initialState: CaseState }) {
         </div>
 
         <div className="case-user-row">
-          <label className="identity-control">
+          <label className="field identity-control">
             <span>Your name</span>
             <input
               value={nameDraft}
@@ -587,12 +576,11 @@ function NotebookWorkspace({ initialState }: { initialState: CaseState }) {
             </div>
           ) : null}
         </div>
-      </header>
 
       {error ? (
         <div className="page-error" role="alert">
           <span>{error}</span>
-          <button type="button" onClick={() => setError("")}>
+          <button className="button-quiet" type="button" onClick={() => setError("")}>
             Dismiss
           </button>
         </div>
@@ -622,14 +610,12 @@ function NotebookWorkspace({ initialState }: { initialState: CaseState }) {
           <div className="empty-notebook">
             <h2>No sections yet</h2>
             <p>
-              Add a note, a task list, or whatever this page needs. Notes can
-              use markdown and mermaid diagrams. An agent that supports WebMCP
-              can set this up too.
+              Add a note, a task list, or whatever this page needs.
             </p>
             {addSectionForm}
           </div>
         )}
-      </div>
+        </div>
       </div>
 
       <SiteFooter
@@ -637,6 +623,37 @@ function NotebookWorkspace({ initialState }: { initialState: CaseState }) {
         toolCount={webMcp.toolCount}
         prompt={notebookAgentPrompt()}
       />
+
+      <dialog
+        ref={deleteDialog}
+        className="app-dialog"
+        aria-labelledby="delete-notebook-title"
+        onClick={(event) => {
+          if (event.target === deleteDialog.current) {
+            closeDeleteDialog();
+          }
+        }}
+      >
+        <form className="app-dialog-body" onSubmit={deleteNotebook}>
+          <h2 id="delete-notebook-title">Delete this notebook?</h2>
+          <p>
+            This notebook only exists in this browser. Deleting it cannot be
+            undone.
+          </p>
+          <div className="dialog-actions">
+            <button
+              className="button-quiet"
+              type="button"
+              onClick={closeDeleteDialog}
+            >
+              Cancel
+            </button>
+            <button className="button button-danger-solid" type="submit">
+              Delete
+            </button>
+          </div>
+        </form>
+      </dialog>
     </main>
   );
 }
@@ -1067,7 +1084,7 @@ function Composer({
         <div className="composer-top-end">
           {canPreview ? (
             <button
-              className={preview ? "text-button composer-preview-on" : "text-button"}
+              className={preview ? "button-quiet composer-preview-on" : "button-quiet"}
               type="button"
               aria-pressed={preview}
               onClick={() => setPreview((open) => !open)}
@@ -1098,7 +1115,6 @@ function Composer({
       <div className="composer-actions">
         <span>
           {body.length}/{limit}
-          {canPreview ? " · Markdown" : ""}
         </span>
         <button
           className="button button-primary"
@@ -1185,7 +1201,7 @@ function NoteCard({
           <div className="note-meta-actions">
             {hasHistory ? (
               <button
-                className="text-button"
+                className="button-quiet"
                 type="button"
                 aria-haspopup="dialog"
                 aria-expanded={historyOpen}
@@ -1195,7 +1211,7 @@ function NoteCard({
               </button>
             ) : null}
             <button
-              className="text-button"
+              className="button-quiet"
               type="button"
               disabled={!canWrite}
               onClick={() => setEditing(true)}
@@ -1243,17 +1259,6 @@ function NoteEditForm({
         void onSubmit(trimmed);
       }}
     >
-      <div className="composer-top">
-        <span>Markdown</span>
-        <button
-          className={preview ? "text-button composer-preview-on" : "text-button"}
-          type="button"
-          aria-pressed={preview}
-          onClick={() => setPreview((open) => !open)}
-        >
-          {preview ? "Write" : "Preview"}
-        </button>
-      </div>
       {preview ? (
         <div className="composer-preview">
           {trimmed ? (
@@ -1273,10 +1278,18 @@ function NoteEditForm({
       )}
       <div className="composer-actions">
         <span>
-          {value.length}/{NOTE_BODY_MAX} · Markdown
+          {value.length}/{NOTE_BODY_MAX}
         </span>
         <div className="note-edit-actions">
-          <button className="text-button" type="button" onClick={onCancel}>
+          <button
+            className={preview ? "button-quiet composer-preview-on" : "button-quiet"}
+            type="button"
+            aria-pressed={preview}
+            onClick={() => setPreview((open) => !open)}
+          >
+            {preview ? "Write" : "Preview"}
+          </button>
+          <button className="button-quiet" type="button" onClick={onCancel}>
             Cancel
           </button>
           <button
@@ -1297,16 +1310,19 @@ function revisionCaption(
   index: number,
   last: boolean,
 ) {
+  const when = timeLabel(revision.createdAt);
+  const who = revision.author.name;
+
   if (index === 0) {
     return {
       title: "Original",
-      meta: `${revision.author.name} / ${timeLabel(revision.createdAt)}`,
+      meta: `${who} · ${when}`,
     };
   }
 
   return {
-    title: last ? `${revision.author.name} · Current` : revision.author.name,
-    meta: timeLabel(revision.createdAt),
+    title: last ? "Current" : who,
+    meta: last ? `${who} · ${when}` : when,
   };
 }
 
@@ -1367,10 +1383,10 @@ function NoteHistoryDialog({
     >
       <div className="note-history-body">
         <div className="note-history-top">
-          <p className="eyebrow">Note history</p>
+          <h2 id={`note-history-${item.id}`}>What changed</h2>
           <div className="note-history-top-actions">
             <button
-              className="text-button"
+              className="button-quiet"
               type="button"
               aria-pressed={expanded}
               onClick={() => setExpanded((open) => !open)}
@@ -1378,13 +1394,12 @@ function NoteHistoryDialog({
               {expanded ? "Shrink" : "Expand"}
             </button>
             <form method="dialog">
-              <button className="text-button" type="submit">
+              <button className="button-quiet" type="submit">
                 Close
               </button>
             </form>
           </div>
         </div>
-        <h2 id={`note-history-${item.id}`}>What changed</h2>
         {revisions.length > 2 ? (
           <div className="note-history-steps" role="tablist" aria-label="Versions">
             {revisions.slice(1).map((revision, offset) => {
@@ -1487,19 +1502,6 @@ function SectionTextForm({
         });
       }}
     >
-      {markdown ? (
-        <div className="composer-top">
-          <span>Markdown</span>
-          <button
-            className={preview ? "text-button composer-preview-on" : "text-button"}
-            type="button"
-            aria-pressed={preview}
-            onClick={() => setPreview((open) => !open)}
-          >
-            {preview ? "Write" : "Preview"}
-          </button>
-        </div>
-      ) : null}
       {preview && markdown ? (
         <div className="composer-preview">
           {value.trim() ? (
@@ -1521,15 +1523,26 @@ function SectionTextForm({
       <div className="composer-actions">
         <span>
           {value.length}/{limit}
-          {markdown ? " · Markdown" : ""}
         </span>
-        <button
-          className="button button-primary"
-          type="submit"
-          disabled={disabled || !value.trim()}
-        >
-          Add
-        </button>
+        <div className="note-edit-actions">
+          {markdown ? (
+            <button
+              className={preview ? "button-quiet composer-preview-on" : "button-quiet"}
+              type="button"
+              aria-pressed={preview}
+              onClick={() => setPreview((open) => !open)}
+            >
+              {preview ? "Write" : "Preview"}
+            </button>
+          ) : null}
+          <button
+            className="button button-primary"
+            type="submit"
+            disabled={disabled || !value.trim()}
+          >
+            Add
+          </button>
+        </div>
       </div>
     </form>
   );

@@ -14,7 +14,12 @@ export function SiteFooter({
     <footer className="site-footer">
       <div className="site-footer-inner">
         <WebMcpStatus status={status} toolCount={toolCount} prompt={prompt} />
-        <span>LOCAL TO THIS BROWSER / EXPORT TO SHARE</span>
+        <p className="site-footer-credit">
+          Made by{" "}
+          <a href="https://x.com/kaumnen" target="_blank" rel="noreferrer">
+            kaumnen
+          </a>
+        </p>
       </div>
     </footer>
   );

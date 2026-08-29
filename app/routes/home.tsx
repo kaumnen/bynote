@@ -18,12 +18,14 @@ import {
   DEMO_GROUPS,
   demoLabel,
   isDefaultDemoTitle,
+  isDemoKind,
   type DemoKind,
 } from "../../src/shared/demos";
 import { readStoredActorName } from "../hooks/use-actor";
 import { useWebMcp } from "../hooks/use-webmcp";
 import { HowItWorks } from "../components/how-it-works";
 import { SiteFooter } from "../components/site-footer";
+import { SiteHeader } from "../components/site-header";
 import { libraryAgentPrompt } from "../webmcp/prompts";
 import { registerLibraryTools } from "../webmcp/register-library-tools";
 import {
@@ -169,8 +171,8 @@ export default function Home(_props: Route.ComponentProps) {
 
   const creatorName = () => readStoredActorName();
 
-  const pickDemo = (kind: DemoKind) => {
-    setDemoKind(kind);
+  const pickDemo = (nextKind: DemoKind) => {
+    setDemoKind(nextKind);
     setDemoName("");
     setDemoMenuOpen(false);
     setError("");
@@ -178,6 +180,14 @@ export default function Home(_props: Route.ComponentProps) {
       demoDialog.current?.showModal();
       demoNameInput.current?.focus();
     });
+  };
+
+  const openSample = () => {
+    if (isDemoKind(kind)) {
+      pickDemo(kind);
+      return;
+    }
+    setDemoMenuOpen((open) => !open);
   };
 
   const closeDemoDialog = () => {
@@ -242,38 +252,34 @@ export default function Home(_props: Route.ComponentProps) {
 
   return (
     <main className="home">
-      <header className="site-header">
-        <a className="wordmark" href="/">
-          BYNOTE
-        </a>
-        <div className="site-header-actions">
-          <p>Local agent notebook</p>
-          <HowItWorks />
-        </div>
-      </header>
+      <SiteHeader>
+        <HowItWorks />
+      </SiteHeader>
 
       <section className="launcher">
         <div className="launcher-intro">
-          <p className="eyebrow">You and your agents</p>
-          <h1>Work in one notebook.</h1>
-          <p>
-            Start with a campaign, a meeting, or a plan. Engineering templates
-            sit in their own group. Add notes, tasks, and decisions together.
-            Markdown and mermaid diagrams work. Everything stays in this
-            browser until you export it.
+          <div className="launcher-intro-copy">
+            <p className="eyebrow">You and your agents</p>
+            <h1>Work in one notebook.</h1>
+            <p className="lede">
+              Campaigns, meetings, plans, and engineering work live on one page.
+              Notes, tasks, and diagrams sit together.
+            </p>
+          </div>
+          <p className="lede privacy-copy">
+            This is saved in this browser. Nothing is sent to a server. Export
+            a file when you want to share it.
           </p>
         </div>
 
         <form className="case-form" onSubmit={openNotebook}>
           <fieldset>
-            <legend>Template</legend>
+            <legend>Templates</legend>
             <div className="template-groups">
               {TEMPLATE_GROUPS.map((group) => (
                 <div key={group.id} className="template-group">
                   <p className="template-group-label">{group.label}</p>
-                  <div
-                    className={`type-choice type-choice-${group.kinds.length}`}
-                  >
+                  <div className="type-choice">
                     {group.kinds.map((value) => (
                       <label key={value}>
                         <input
@@ -332,56 +338,48 @@ export default function Home(_props: Route.ComponentProps) {
             </p>
           ) : null}
 
-          <button className="button button-primary" type="submit" disabled={busy}>
-            {busy ? "Creating..." : "Create notebook"}
-          </button>
-        </form>
-
-        <div className="demo-row">
-          <div>
-            <strong>Need an example?</strong>
-            <p>
-              Open a filled plan, campaign, meeting, or engineering notebook.
-              Blank starts empty on purpose.
-            </p>
-          </div>
-          <div className="demo-picker" ref={demoPicker}>
-            <button
-              className="button button-secondary demo-picker-toggle"
-              type="button"
-              aria-haspopup="menu"
-              aria-expanded={demoMenuOpen}
-              disabled={busy}
-              onClick={() => setDemoMenuOpen((open) => !open)}
-            >
-              Choose sample
+          <div className="case-form-actions">
+            <button className="button button-primary" type="submit" disabled={busy}>
+              {busy ? "Creating..." : "Create notebook"}
             </button>
-            {demoMenuOpen ? (
-              <div className="demo-menu" role="menu" aria-label="Sample type">
-                {DEMO_GROUPS.map((group) => (
-                  <div
-                    key={group.label}
-                    className="demo-menu-group"
-                    role="group"
-                    aria-label={group.label}
-                  >
-                    <p className="demo-menu-label">{group.label}</p>
-                    {group.kinds.map((sampleKind) => (
-                      <button
-                        key={sampleKind}
-                        type="button"
-                        role="menuitem"
-                        onClick={() => pickDemo(sampleKind)}
-                      >
-                        {demoLabel(sampleKind)}
-                      </button>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            ) : null}
+            <div className="demo-picker" ref={demoPicker}>
+              <button
+                className="button-quiet"
+                type="button"
+                aria-haspopup={isDemoKind(kind) ? "dialog" : "menu"}
+                aria-expanded={demoMenuOpen}
+                disabled={busy}
+                onClick={openSample}
+              >
+                Open a sample instead
+              </button>
+              {demoMenuOpen ? (
+                <div className="demo-menu" role="menu" aria-label="Sample type">
+                  {DEMO_GROUPS.map((group) => (
+                    <div
+                      key={group.label}
+                      className="demo-menu-group"
+                      role="group"
+                      aria-label={group.label}
+                    >
+                      <p className="demo-menu-label">{group.label}</p>
+                      {group.kinds.map((sampleKind) => (
+                        <button
+                          key={sampleKind}
+                          type="button"
+                          role="menuitem"
+                          onClick={() => pickDemo(sampleKind)}
+                        >
+                          {demoLabel(sampleKind)}
+                        </button>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
           </div>
-        </div>
+        </form>
 
         <section className="library" aria-labelledby="library-title">
           <div className="library-heading">
@@ -394,8 +392,8 @@ export default function Home(_props: Route.ComponentProps) {
               </h2>
               <p>
                 {notebooks.length
-                  ? "These notebooks stay here until you delete them."
-                  : "Nothing stored here yet. Create one above, or import a file."}
+                  ? "These stay in this browser until you delete them."
+                  : "Nothing here yet. Create one above, or import a file."}
               </p>
             </div>
             <div className="library-actions">
@@ -451,8 +449,8 @@ export default function Home(_props: Route.ComponentProps) {
                   <button
                     className={
                       pendingDelete === notebook.id
-                        ? "text-button notebook-delete-confirm"
-                        : "text-button"
+                        ? "button-danger notebook-delete-confirm"
+                        : "button-danger"
                     }
                     type="button"
                     aria-label={
@@ -520,7 +518,7 @@ export default function Home(_props: Route.ComponentProps) {
                 onChange={(event) => setDemoName(event.target.value)}
               />
               <button
-                className="button"
+                className="button button-primary"
                 type="submit"
                 disabled={busy || (!usingDefaultDemo && demoName.trim().length < 3)}
               >
@@ -529,7 +527,7 @@ export default function Home(_props: Route.ComponentProps) {
             </div>
           </label>
           <button
-            className="text-button"
+            className="button-quiet"
             type="button"
             onClick={closeDemoDialog}
           >

@@ -46,7 +46,7 @@ export function HowItWorks() {
   return (
     <>
       <button
-        className="text-button how-it-works-trigger"
+        className="button-quiet how-it-works-trigger"
         type="button"
         aria-haspopup="dialog"
         aria-expanded={open}
@@ -71,7 +71,7 @@ export function HowItWorks() {
           <div className="how-it-works-top">
             <p className="eyebrow">Local agent notebook</p>
             <form method="dialog">
-              <button className="text-button" type="submit">
+              <button className="button-quiet" type="submit">
                 Close
               </button>
             </form>
@@ -79,8 +79,9 @@ export function HowItWorks() {
 
           <h2 id="how-it-works-title">How it works</h2>
           <p>
-            You and your agents share one notebook in this browser. Nothing is
-            uploaded. Export a JSON file when you want to share or move it.
+            You and your agents share one notebook. This is saved in this
+            browser. Nothing is sent to a server. Export a file when you want
+            to move it.
           </p>
 
           <div className="how-it-works-steps">
@@ -107,16 +108,16 @@ export function HowItWorks() {
               <p className="eyebrow">Agents</p>
               <p>
                 When the footer shows WebMCP ready, an assistant can list,
-                open, and write in this tab. Copy the footer prompt into the
-                agent. If it says WebMCP off, you can still use the notebook
-                yourself.
+                open, and write in this tab. Hover over the copy control to
+                preview the prompt, then copy it into the agent. If it says
+                WebMCP off, you can still use the notebook yourself.
               </p>
             </section>
             <section>
               <p className="eyebrow">Stay local</p>
               <p>
-                Notebooks live in this browser until you delete them. Export
-                downloads a file you can import on another machine.
+                This is saved in this browser. Nothing is sent to a server.
+                Export a file when you want to move it.
               </p>
             </section>
           </div>
@@ -137,7 +138,7 @@ export function HowItWorks() {
           </ul>
 
           <p className="how-it-works-hint">
-            Need a filled example? Choose a sample on the home page.
+            Need a filled example? Open a sample on the home page.
           </p>
         </div>
       </dialog>

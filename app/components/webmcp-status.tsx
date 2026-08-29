@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 
 import type { WebMcpStatus as Status } from "../hooks/use-webmcp";
 
@@ -12,6 +12,7 @@ export function WebMcpStatus({
   prompt: string;
 }) {
   const [copied, setCopied] = useState(false);
+  const promptPreviewId = useId();
 
   const copyPrompt = async () => {
     try {
@@ -38,9 +39,26 @@ export function WebMcpStatus({
         <i className="webmcp-dot" aria-hidden="true" />
         <span>{label}</span>
       </span>
-      <button className="text-button" type="button" onClick={() => void copyPrompt()}>
-        {copied ? "Copied" : "Copy prompt"}
-      </button>
+      <div className="webmcp-prompt">
+        <button
+          className="button-quiet"
+          type="button"
+          aria-describedby={promptPreviewId}
+          onClick={() => void copyPrompt()}
+        >
+          {copied ? "Copied" : "Copy prompt"}
+        </button>
+        <div
+          className="webmcp-prompt-preview"
+          id={promptPreviewId}
+          role="tooltip"
+        >
+          <div className="webmcp-prompt-preview-screen">
+            <span>Agent prompt</span>
+            <pre>{prompt}</pre>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
