@@ -82,4 +82,12 @@ describe("MarkdownBody", () => {
     expect(rendered).toContain("Done");
     expect(rendered).toContain("Open");
   });
+
+  it("enables GFM task lists when they can be toggled", () => {
+    const rendered = renderToStaticMarkup(
+      <MarkdownBody source="- [ ] Open" onToggleTask={() => {}} />,
+    );
+    expect(rendered).toContain('type="checkbox"');
+    expect(rendered).not.toContain("disabled");
+  });
 });

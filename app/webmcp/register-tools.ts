@@ -28,6 +28,12 @@ function result(label: string, data: unknown): WebMcpToolResult {
   };
 }
 
+function publicNote(item: CaseState["notes"][number]) {
+  const { revisions, ...rest } = item;
+  void revisions;
+  return rest;
+}
+
 function stateSummary(state: CaseState) {
   return {
     id: state.id,
@@ -41,7 +47,7 @@ function stateSummary(state: CaseState) {
     entries: state.entries,
     hypotheses: state.hypotheses,
     tasks: state.tasks,
-    notes: state.notes,
+    notes: state.notes.map(publicNote),
     checklists: state.checklists,
     decisions: state.decisions,
     participants: state.participants,
@@ -232,7 +238,7 @@ export function registerCaseTools({
     {
       name: "add_note",
       description:
-        "Append markdown to a note section. Use a section whose type is note. Get the section ID from read_case. Mermaid diagrams in fenced mermaid code blocks are rendered.",
+        "Append markdown to a note section. Use a section whose type is note. Get the section ID from read_case. Mermaid diagrams in fenced mermaid code blocks are rendered. Task list checkboxes can later be toggled with toggle_note_task.",
       inputSchema: schema(toolInputSchemas.addNote),
       async execute(input) {
         const parsed = toolInputSchemas.addNote.parse(input);
@@ -244,6 +250,48 @@ export function registerCaseTools({
           }),
         );
         return result("Note added", { revision: state.revision });
+      },
+    },
+    {
+      name: "revise_note",
+      description:
+        "Replace the body of a sent note. The same note stays in place. History keeps the previous body, who changed it, and when. Use a note ID from read_case.",
+      inputSchema: schema(toolInputSchemas.reviseNote),
+      async execute(input) {
+        const parsed = toolInputSchemas.reviseNote.parse(input);
+        const state = await submit(
+          agentAction({
+            type: "revise_note",
+            noteId: parsed.noteId,
+            body: parsed.body,
+          }),
+        );
+        const note = state.notes.find(({ id }) => id === parsed.noteId);
+        return result("Note revised", {
+          note: note ? publicNote(note) : null,
+          revision: state.revision,
+        });
+      },
+    },
+    {
+      name: "toggle_note_task",
+      description:
+        "Toggle a markdown task list checkbox in a sent note. taskIndex is the 0-based checkbox in that note, skipping fenced code. Use a note ID from read_case.",
+      inputSchema: schema(toolInputSchemas.toggleNoteTask),
+      async execute(input) {
+        const parsed = toolInputSchemas.toggleNoteTask.parse(input);
+        const state = await submit(
+          agentAction({
+            type: "toggle_note_task",
+            noteId: parsed.noteId,
+            taskIndex: parsed.taskIndex,
+          }),
+        );
+        const note = state.notes.find(({ id }) => id === parsed.noteId);
+        return result("Note task updated", {
+          note: note ? publicNote(note) : null,
+          revision: state.revision,
+        });
       },
     },
     {

@@ -1,6 +1,7 @@
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
   type FormEvent,
   type ReactNode,
@@ -44,10 +45,12 @@ import {
   type CaseEntry,
   type CaseState,
   type CaseStatusSchema,
+  type NoteItem,
   type Section,
   type SectionType,
   type TaskStatusSchema,
 } from "../../src/shared/schemas";
+import { splitDiffRows } from "../../src/shared/note-history";
 import type { z } from "zod";
 
 type ComposerKind =
@@ -853,7 +856,7 @@ function NotebookSection({
       >
         <SectionHeading section={section} count={items.length} />
         <SectionTextForm
-          placeholder="Write a note. Headings, lists, and mermaid diagrams work."
+          placeholder="Write a note. Headings, lists, checkboxes, and mermaid diagrams work."
           disabled={busy || actor.id === "pending"}
           markdown
           onSubmit={(value) =>
@@ -869,15 +872,14 @@ function NotebookSection({
         {items.length ? (
           <ol className="focus-list">
             {items.toReversed().map((item) => (
-              <li key={item.id} className={toneFor(item.author)}>
-                <MarkdownBody source={item.body} />
-                <small className="author-mini">
-                  <i aria-hidden="true">
-                    {item.author.kind === "agent" ? "A" : "H"}
-                  </i>
-                  {item.author.name} / {timeLabel(item.createdAt)}
-                </small>
-              </li>
+              <NoteCard
+                key={item.id}
+                item={item}
+                busy={busy}
+                actor={actor}
+                tone={toneFor(item.author)}
+                onAction={submitAction}
+              />
             ))}
           </ol>
         ) : (
@@ -1107,6 +1109,351 @@ function Composer({
         </button>
       </div>
     </form>
+  );
+}
+
+function NoteCard({
+  item,
+  busy,
+  actor,
+  tone,
+  onAction,
+}: {
+  item: NoteItem;
+  busy: boolean;
+  actor: Actor;
+  tone: string;
+  onAction: (action: CaseAction) => Promise<unknown>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const canWrite = !busy && actor.id !== "pending";
+  const updatedAt = item.updatedAt;
+  const updatedBy = item.updatedBy;
+  const hasHistory = Boolean(updatedAt && item.revisions?.length);
+
+  return (
+    <li className={tone}>
+      {editing ? (
+        <NoteEditForm
+          initial={item.body}
+          disabled={!canWrite}
+          onSubmit={(body) =>
+            onAction({
+              type: "revise_note",
+              noteId: item.id,
+              body,
+              actor,
+              source: "human-ui",
+            }).then(() => {
+              setEditing(false);
+            })
+          }
+          onCancel={() => setEditing(false)}
+        />
+      ) : (
+        <MarkdownBody
+          source={item.body}
+          onToggleTask={
+            canWrite
+              ? (taskIndex) => {
+                  void onAction({
+                    type: "toggle_note_task",
+                    noteId: item.id,
+                    taskIndex,
+                    actor,
+                    source: "human-ui",
+                  });
+                }
+              : undefined
+          }
+        />
+      )}
+      <div className="note-meta">
+        <small className="author-mini">
+          <i aria-hidden="true">{item.author.kind === "agent" ? "A" : "H"}</i>
+          {item.author.name} / {timeLabel(item.createdAt)}
+        </small>
+        {updatedAt ? (
+          <small className="note-updated">
+            {updatedBy && updatedBy.id !== item.author.id
+              ? `Updated ${timeLabel(updatedAt)} · ${updatedBy.name}`
+              : `Updated ${timeLabel(updatedAt)}`}
+          </small>
+        ) : null}
+        {editing ? null : (
+          <div className="note-meta-actions">
+            {hasHistory ? (
+              <button
+                className="text-button"
+                type="button"
+                aria-haspopup="dialog"
+                aria-expanded={historyOpen}
+                onClick={() => setHistoryOpen(true)}
+              >
+                History
+              </button>
+            ) : null}
+            <button
+              className="text-button"
+              type="button"
+              disabled={!canWrite}
+              onClick={() => setEditing(true)}
+            >
+              Edit
+            </button>
+          </div>
+        )}
+      </div>
+      {hasHistory ? (
+        <NoteHistoryDialog
+          item={item}
+          open={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+        />
+      ) : null}
+    </li>
+  );
+}
+
+function NoteEditForm({
+  initial,
+  disabled,
+  onSubmit,
+  onCancel,
+}: {
+  initial: string;
+  disabled: boolean;
+  onSubmit: (value: string) => Promise<unknown>;
+  onCancel: () => void;
+}) {
+  const [value, setValue] = useState(initial);
+  const [preview, setPreview] = useState(false);
+  const trimmed = value.trim();
+  const unchanged = trimmed === initial.trim();
+
+  return (
+    <form
+      className="composer"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (!trimmed || unchanged) {
+          return;
+        }
+        void onSubmit(trimmed);
+      }}
+    >
+      <div className="composer-top">
+        <span>Markdown</span>
+        <button
+          className={preview ? "text-button composer-preview-on" : "text-button"}
+          type="button"
+          aria-pressed={preview}
+          onClick={() => setPreview((open) => !open)}
+        >
+          {preview ? "Write" : "Preview"}
+        </button>
+      </div>
+      {preview ? (
+        <div className="composer-preview">
+          {trimmed ? (
+            <MarkdownBody source={value} />
+          ) : (
+            <p className="empty-copy">Nothing to preview.</p>
+          )}
+        </div>
+      ) : (
+        <textarea
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+          maxLength={NOTE_BODY_MAX}
+          rows={6}
+          disabled={disabled}
+        />
+      )}
+      <div className="composer-actions">
+        <span>
+          {value.length}/{NOTE_BODY_MAX} · Markdown
+        </span>
+        <div className="note-edit-actions">
+          <button className="text-button" type="button" onClick={onCancel}>
+            Cancel
+          </button>
+          <button
+            className="button button-primary"
+            type="submit"
+            disabled={disabled || !trimmed || unchanged}
+          >
+            Save
+          </button>
+        </div>
+      </div>
+    </form>
+  );
+}
+
+function revisionCaption(
+  revision: { author: Actor; createdAt: string },
+  index: number,
+  last: boolean,
+) {
+  if (index === 0) {
+    return {
+      title: "Original",
+      meta: `${revision.author.name} / ${timeLabel(revision.createdAt)}`,
+    };
+  }
+
+  return {
+    title: last ? `${revision.author.name} · Current` : revision.author.name,
+    meta: timeLabel(revision.createdAt),
+  };
+}
+
+function NoteHistoryDialog({
+  item,
+  open,
+  onClose,
+}: {
+  item: NoteItem;
+  open: boolean;
+  onClose: () => void;
+}) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const revisions = item.revisions ?? [];
+  const lastIndex = Math.max(revisions.length - 1, 1);
+  const [selected, setSelected] = useState(lastIndex);
+  const [expanded, setExpanded] = useState(false);
+  const selectedIndex = Math.min(Math.max(selected, 1), lastIndex);
+  const before = revisions[selectedIndex - 1];
+  const after = revisions[selectedIndex];
+  const rows =
+    before && after ? splitDiffRows(before.body, after.body) : [];
+  const beforeCaption = before
+    ? revisionCaption(before, selectedIndex - 1, false)
+    : null;
+  const afterCaption = after
+    ? revisionCaption(after, selectedIndex, selectedIndex === lastIndex)
+    : null;
+
+  useEffect(() => {
+    const node = dialog.current;
+    if (!node) {
+      return;
+    }
+    if (open && !node.open) {
+      setSelected(Math.max((item.revisions?.length ?? 1) - 1, 1));
+      node.showModal();
+    }
+    if (!open && node.open) {
+      node.close();
+      setExpanded(false);
+    }
+  }, [item.revisions?.length, open]);
+
+  return (
+    <dialog
+      ref={dialog}
+      className={
+        expanded ? "note-history-dialog note-history-dialog-wide" : "note-history-dialog"
+      }
+      aria-labelledby={`note-history-${item.id}`}
+      onClose={onClose}
+      onClick={(event) => {
+        if (event.target === dialog.current) {
+          onClose();
+        }
+      }}
+    >
+      <div className="note-history-body">
+        <div className="note-history-top">
+          <p className="eyebrow">Note history</p>
+          <div className="note-history-top-actions">
+            <button
+              className="text-button"
+              type="button"
+              aria-pressed={expanded}
+              onClick={() => setExpanded((open) => !open)}
+            >
+              {expanded ? "Shrink" : "Expand"}
+            </button>
+            <form method="dialog">
+              <button className="text-button" type="submit">
+                Close
+              </button>
+            </form>
+          </div>
+        </div>
+        <h2 id={`note-history-${item.id}`}>What changed</h2>
+        {revisions.length > 2 ? (
+          <div className="note-history-steps" role="tablist" aria-label="Versions">
+            {revisions.slice(1).map((revision, offset) => {
+              const index = offset + 1;
+              const current = index === lastIndex;
+              return (
+                <button
+                  key={`${revision.createdAt}-${index}`}
+                  className={
+                    index === selectedIndex
+                      ? "note-history-step note-history-step-on"
+                      : "note-history-step"
+                  }
+                  type="button"
+                  role="tab"
+                  aria-selected={index === selectedIndex}
+                  onClick={() => setSelected(index)}
+                >
+                  {current ? "Current" : revision.author.name}
+                  <span>{timeLabel(revision.createdAt)}</span>
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+        {beforeCaption && afterCaption ? (
+          <div className="note-history-compare">
+            <div className="note-history-compare-head">
+              <div>
+                <strong>{beforeCaption.title}</strong>
+                <span>{beforeCaption.meta}</span>
+              </div>
+              <div>
+                <strong>{afterCaption.title}</strong>
+                <span>{afterCaption.meta}</span>
+              </div>
+            </div>
+            <div
+              className="note-history-compare-body"
+              tabIndex={0}
+              aria-label="Compared versions"
+            >
+              {rows.map((row, rowIndex) => (
+                <div className="note-history-row" key={rowIndex}>
+                  <pre
+                    className={
+                      row.left
+                        ? `note-history-cell note-history-cell-${row.left.kind}`
+                        : "note-history-cell note-history-cell-empty"
+                    }
+                  >
+                    {row.left?.text || " "}
+                  </pre>
+                  <pre
+                    className={
+                      row.right
+                        ? `note-history-cell note-history-cell-${row.right.kind}`
+                        : "note-history-cell note-history-cell-empty"
+                    }
+                  >
+                    {row.right?.text || " "}
+                  </pre>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </dialog>
   );
 }
 

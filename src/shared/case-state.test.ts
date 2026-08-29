@@ -309,5 +309,48 @@ describe("case state", () => {
 
     expect(noted.notes).toHaveLength(1);
     expect(noted.notes[0]?.body).toContain("canary");
+
+    const revised = applyCaseAction(
+      noted,
+      {
+        type: "revise_note",
+        noteId: noted.notes[0]?.id ?? "",
+        body: "Ship after the canary is green.\n\n- [ ] Ping legal",
+        actor: human,
+        source: "human-ui",
+      },
+      context,
+    );
+    expect(revised.notes[0]?.body).toContain("Ping legal");
+    expect(revised.notes[0]?.updatedBy?.name).toBe("Alex");
+    expect(revised.notes[0]?.revisions).toHaveLength(2);
+
+    const toggled = applyCaseAction(
+      revised,
+      {
+        type: "toggle_note_task",
+        noteId: revised.notes[0]?.id ?? "",
+        taskIndex: 0,
+        actor: { id: "agent-1", name: "Mira", kind: "agent" },
+        source: "webmcp",
+      },
+      context,
+    );
+    expect(toggled.notes[0]?.body).toContain("- [x] Ping legal");
+    expect(toggled.notes[0]?.updatedBy?.name).toBe("Mira");
+    expect(toggled.revision).toBe(revised.revision + 1);
+
+    const unchanged = applyCaseAction(
+      toggled,
+      {
+        type: "revise_note",
+        noteId: toggled.notes[0]?.id ?? "",
+        body: toggled.notes[0]?.body ?? "",
+        actor: human,
+        source: "human-ui",
+      },
+      context,
+    );
+    expect(unchanged).toBe(toggled);
   });
 });

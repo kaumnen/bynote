@@ -60,6 +60,11 @@ export function withNeutralNames(state: CaseState): CaseState {
     notes: state.notes.map((item) => ({
       ...item,
       author: renameActor(item.author),
+      updatedBy: item.updatedBy ? renameActor(item.updatedBy) : undefined,
+      revisions: item.revisions?.map((revision) => ({
+        ...revision,
+        author: renameActor(revision.author),
+      })),
     })),
     checklists: state.checklists.map((item) => ({
       ...item,
@@ -229,7 +234,9 @@ export function listLocalNotebooks(): NotebookSummary[] {
     const latest = [
       state.createdAt,
       ...state.entries.map(({ createdAt }) => createdAt),
-      ...state.notes.map(({ createdAt }) => createdAt),
+      ...state.notes.flatMap(({ createdAt, updatedAt }) =>
+        updatedAt ? [createdAt, updatedAt] : [createdAt],
+      ),
       ...state.decisions.map(({ createdAt }) => createdAt),
       ...state.checklists.map(({ updatedAt }) => updatedAt),
     ].sort()

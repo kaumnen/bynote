@@ -12,6 +12,15 @@ import "./styles.css";
 
 export const links: Route.LinksFunction = () => [
   {
+    rel: "icon",
+    href: "/favicon.svg",
+    type: "image/svg+xml",
+  },
+  {
+    rel: "apple-touch-icon",
+    href: "/favicon.svg",
+  },
+  {
     rel: "preload",
     href: "/fonts/DepartureMono-Regular.woff2",
     as: "font",

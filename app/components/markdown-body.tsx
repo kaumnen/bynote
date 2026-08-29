@@ -3,6 +3,8 @@ import {
   isValidElement,
   useEffect,
   useId,
+  useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -121,15 +123,41 @@ function MarkdownPre({ children }: { children?: ReactNode }) {
 function MarkdownCheckbox({
   checked,
   type,
+  disabled,
+  onToggle,
 }: {
   checked?: boolean;
   type?: string;
+  disabled?: boolean;
+  onToggle?: (index: number) => void;
 }) {
   if (type !== "checkbox") {
     return null;
   }
 
-  return <input type="checkbox" checked={Boolean(checked)} disabled />;
+  return (
+    <input
+      type="checkbox"
+      checked={Boolean(checked)}
+      disabled={disabled}
+      onChange={(event) => {
+        if (!onToggle) {
+          return;
+        }
+
+        const root = event.currentTarget.closest(".markdown-body");
+        if (!root) {
+          return;
+        }
+
+        const boxes = root.querySelectorAll('input[type="checkbox"]');
+        const index = Array.from(boxes).indexOf(event.currentTarget);
+        if (index >= 0) {
+          onToggle(index);
+        }
+      }}
+    />
+  );
 }
 
 function classNames(...parts: Array<string | undefined>) {
@@ -188,7 +216,42 @@ const markdownComponents = {
   ),
 };
 
-export function MarkdownBody({ source }: { source: string }) {
+export function MarkdownBody({
+  source,
+  onToggleTask,
+}: {
+  source: string;
+  onToggleTask?: (index: number) => void;
+}) {
+  const onToggleTaskRef = useRef(onToggleTask);
+  onToggleTaskRef.current = onToggleTask;
+  const canToggle = Boolean(onToggleTask);
+
+  const components = useMemo(
+    () => ({
+      ...markdownComponents,
+      input: ({
+        checked,
+        type,
+      }: {
+        checked?: boolean;
+        type?: string;
+      }) => (
+        <MarkdownCheckbox
+          checked={checked}
+          type={type}
+          disabled={!canToggle}
+          onToggle={
+            canToggle
+              ? (index) => onToggleTaskRef.current?.(index)
+              : undefined
+          }
+        />
+      ),
+    }),
+    [canToggle],
+  );
+
   if (!source.trim()) {
     return null;
   }
@@ -197,7 +260,7 @@ export function MarkdownBody({ source }: { source: string }) {
     <div className="markdown-body">
       <Markdown
         remarkPlugins={[remarkGfm, remarkBreaks]}
-        components={markdownComponents}
+        components={components}
       >
         {source}
       </Markdown>

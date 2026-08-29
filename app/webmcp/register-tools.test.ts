@@ -75,6 +75,8 @@ describe("WebMCP tools", () => {
       "post_update",
       "propose_resolution",
       "add_note",
+      "revise_note",
+      "toggle_note_task",
       "add_decision",
       "add_checklist_item",
       "toggle_checklist_item",
@@ -87,6 +89,19 @@ describe("WebMCP tools", () => {
     await tools
       .get("add_finding")
       ?.execute({ body: "Cache misses increased after release 214." });
+    const goalId = current.sections.find(({ type }) => type === "note")?.id;
+    await tools.get("add_note")?.execute({
+      sectionId: goalId,
+      body: "- [ ] Ping legal",
+    });
+    await tools.get("revise_note")?.execute({
+      noteId: current.notes[0]?.id,
+      body: "- [ ] Ping legal\n- [ ] Ship one-pager",
+    });
+    await tools.get("toggle_note_task")?.execute({
+      noteId: current.notes[0]?.id,
+      taskIndex: 0,
+    });
 
     const finding = current.entries.at(-1);
     expect(finding?.author).toMatchObject({
@@ -99,8 +114,20 @@ describe("WebMCP tools", () => {
     const readResult = await tools.get("read_case")?.execute({});
     expect(readResult?.structuredContent).toMatchObject({
       id: "case-1",
-      revision: 3,
+      revision: 6,
     });
+    const notes = (
+      readResult?.structuredContent as {
+        notes: Array<{
+          body: string;
+          revisions?: unknown;
+          updatedBy?: { name: string };
+        }>;
+      }
+    ).notes;
+    expect(notes[0]?.body).toContain("- [x] Ping legal");
+    expect(notes[0]?.updatedBy?.name).toBe("Scout");
+    expect(notes[0]?.revisions).toBeUndefined();
     expect(
       (
         readResult?.structuredContent as {

@@ -5,6 +5,8 @@ import {
   resolveDemoTitle,
   type DemoKind,
 } from "./demos";
+import { toggleMarkdownTask } from "./markdown";
+import { reviseNoteItem } from "./note-history";
 import { emptyNotebookLists, sectionsForTemplate } from "./templates";
 import type {
   Actor,
@@ -806,6 +808,61 @@ export function applyCaseAction(
           ),
         ].slice(-100),
       };
+
+    case "revise_note": {
+      const item = state.notes.find(({ id }) => id === action.noteId);
+      if (!item) {
+        throw new Error("Note not found");
+      }
+
+      const revised = reviseNoteItem(
+        item,
+        action.body,
+        action.actor,
+        action.source,
+        now,
+      );
+      if (revised === item) {
+        return state;
+      }
+
+      return {
+        ...base,
+        notes: state.notes.map((entryItem) =>
+          entryItem.id === action.noteId ? revised : entryItem,
+        ),
+      };
+    }
+
+    case "toggle_note_task": {
+      const item = state.notes.find(({ id }) => id === action.noteId);
+      if (!item) {
+        throw new Error("Note not found");
+      }
+
+      const body = toggleMarkdownTask(item.body, action.taskIndex);
+      if (body === null) {
+        throw new Error("Task item not found");
+      }
+
+      const revised = reviseNoteItem(
+        item,
+        body,
+        action.actor,
+        action.source,
+        now,
+      );
+      if (revised === item) {
+        return state;
+      }
+
+      return {
+        ...base,
+        notes: state.notes.map((entryItem) =>
+          entryItem.id === action.noteId ? revised : entryItem,
+        ),
+      };
+    }
 
     case "add_decision":
       requireSection(state, action.sectionId, "decisions");

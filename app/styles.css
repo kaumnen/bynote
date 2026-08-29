@@ -1703,6 +1703,11 @@ textarea::placeholder {
   vertical-align: middle;
 }
 
+.markdown-body input[type="checkbox"]:not(:disabled) {
+  cursor: pointer;
+  accent-color: var(--ink);
+}
+
 .mermaid-block,
 .mermaid-pending,
 .mermaid-fallback {
@@ -1837,6 +1842,215 @@ textarea::placeholder {
   padding-right: 6px;
   background: var(--white);
   color: var(--actor);
+}
+
+.note-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-top: 7px;
+}
+
+.note-meta .author-mini {
+  margin-top: 0;
+}
+
+.note-updated {
+  color: var(--muted);
+  font-size: 0.6rem;
+}
+
+.note-meta-actions {
+  display: inline-flex;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.note-meta-actions .text-button {
+  padding: 0;
+  font-size: 0.6rem;
+}
+
+.note-edit-actions {
+  display: inline-flex;
+  align-items: stretch;
+  align-self: stretch;
+  gap: 12px;
+  padding-left: 12px;
+}
+
+.note-edit-actions .text-button {
+  padding-right: 2px;
+}
+
+.composer-actions .note-edit-actions .button {
+  border-width: 0 0 0 1px;
+}
+
+.note-history-dialog {
+  width: min(72rem, calc(100vw - 24px));
+  height: min(42rem, calc(100vh - 24px));
+  max-height: calc(100vh - 24px);
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  padding: 0;
+  overflow: hidden;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: inherit;
+}
+
+.note-history-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.note-history-dialog-wide {
+  width: calc(100vw - 16px);
+  height: calc(100vh - 16px);
+  max-height: none;
+}
+
+.note-history-dialog::backdrop {
+  background: color-mix(in srgb, var(--paper) 62%, var(--ink));
+}
+
+.note-history-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  padding: 22px 22px 18px;
+}
+
+.note-history-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.note-history-top .eyebrow {
+  margin-bottom: 0;
+}
+
+.note-history-top-actions {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 14px;
+}
+
+.note-history-body > h2 {
+  margin: 10px 0 14px;
+  font-size: 1.45rem;
+  letter-spacing: -0.04em;
+}
+
+.note-history-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.note-history-step {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  border: 1px solid var(--line);
+  padding: 6px 10px;
+  background: var(--white);
+  cursor: pointer;
+  font-size: 0.66rem;
+  text-align: left;
+}
+
+.note-history-step span {
+  color: var(--muted);
+  font-size: 0.58rem;
+}
+
+.note-history-step-on,
+.note-history-step:hover,
+.note-history-step:focus-visible {
+  border-color: var(--ink);
+}
+
+.note-history-compare {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  background: var(--white);
+}
+
+.note-history-compare-head {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-bottom: 1px solid var(--line);
+}
+
+.note-history-compare-head > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 12px;
+  padding: 10px 12px;
+}
+
+.note-history-compare-head > div + div {
+  border-left: 1px solid var(--line);
+}
+
+.note-history-compare-head strong {
+  font-size: 0.72rem;
+  font-weight: 400;
+}
+
+.note-history-compare-head span {
+  color: var(--muted);
+  font-size: 0.6rem;
+}
+
+.note-history-compare-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.note-history-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.note-history-cell {
+  margin: 0;
+  padding: 1px 12px;
+  font-size: 0.68rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.note-history-cell + .note-history-cell {
+  border-left: 1px solid var(--line);
+}
+
+.note-history-cell-del {
+  background: color-mix(in srgb, var(--orange) 14%, var(--white));
+  box-shadow: inset 3px 0 0 var(--orange);
+}
+
+.note-history-cell-add {
+  background: color-mix(in srgb, var(--blue) 12%, var(--white));
+  box-shadow: inset 3px 0 0 var(--blue);
+}
+
+.note-history-cell-empty {
+  background: var(--paper-cool);
 }
 
 .task-list li > div {
@@ -1982,6 +2196,17 @@ textarea::placeholder {
 }
 
 @media (max-width: 640px) {
+  .note-history-compare-head,
+  .note-history-row {
+    grid-template-columns: 1fr;
+  }
+
+  .note-history-compare-head > div + div,
+  .note-history-cell + .note-history-cell {
+    border-top: 1px solid var(--line);
+    border-left: 0;
+  }
+
   .home {
     width: min(100% - 32px, 1120px);
   }

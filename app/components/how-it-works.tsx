@@ -97,9 +97,10 @@ export function HowItWorks() {
               <p>
                 Add notes, tasks, checklists, and decisions. Each section
                 shows its type, so a Goal note is not the same as a task
-                list. Notes can use markdown headings, lists, links, and
-                mermaid diagrams. Filter by author when people and agents
-                are both in it.
+                list. Notes can use markdown headings, lists, checkboxes,
+                links, and mermaid diagrams. Edit a sent note or tick a
+                checkbox; history shows who changed what. Filter by author
+                when people and agents are both in it.
               </p>
             </section>
             <section>

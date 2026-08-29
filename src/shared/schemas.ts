@@ -11,6 +11,7 @@ export const CaseKindSchema = z.enum([
 ]);
 export const ENTRY_BODY_MAX = 4_000;
 export const NOTE_BODY_MAX = 8_000;
+export const NOTE_REVISION_MAX = 20;
 export const HYPOTHESIS_DETAIL_MAX = 4_000;
 export const CaseStatusSchema = z.enum([
   "open",
@@ -111,6 +112,15 @@ export const ParticipantSchema = z
   })
   .strict();
 
+export const NoteRevisionSchema = z
+  .object({
+    body: z.string(),
+    author: ActorSchema,
+    source: ActionSourceSchema,
+    createdAt: z.string(),
+  })
+  .strict();
+
 export const NoteItemSchema = z
   .object({
     id: z.string(),
@@ -119,6 +129,9 @@ export const NoteItemSchema = z
     author: ActorSchema,
     source: ActionSourceSchema,
     createdAt: z.string(),
+    updatedAt: z.string().optional(),
+    updatedBy: ActorSchema.optional(),
+    revisions: z.array(NoteRevisionSchema).max(NOTE_REVISION_MAX).optional(),
   })
   .strict();
 
@@ -248,6 +261,22 @@ export const CaseActionSchema = z.discriminatedUnion("type", [
     .strict(),
   z
     .object({
+      type: z.literal("revise_note"),
+      noteId: z.string().min(1).max(100),
+      body: z.string().trim().min(1).max(NOTE_BODY_MAX),
+      ...actionBase,
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("toggle_note_task"),
+      noteId: z.string().min(1).max(100),
+      taskIndex: z.number().int().nonnegative().max(200),
+      ...actionBase,
+    })
+    .strict(),
+  z
+    .object({
       type: z.literal("add_decision"),
       sectionId: z.string().min(1).max(100),
       body: z.string().trim().min(1).max(NOTE_BODY_MAX),
@@ -343,6 +372,18 @@ export const toolInputSchemas = {
       body: z.string().trim().min(1).max(NOTE_BODY_MAX),
     })
     .strict(),
+  reviseNote: z
+    .object({
+      noteId: z.string().min(1).max(100),
+      body: z.string().trim().min(1).max(NOTE_BODY_MAX),
+    })
+    .strict(),
+  toggleNoteTask: z
+    .object({
+      noteId: z.string().min(1).max(100),
+      taskIndex: z.number().int().nonnegative().max(200),
+    })
+    .strict(),
   addDecision: z
     .object({
       sectionId: z.string().min(1).max(100),
@@ -405,6 +446,7 @@ export type ChecklistItem = z.infer<typeof ChecklistItemSchema>;
 export type CreateCaseInput = z.infer<typeof CreateCaseInputSchema>;
 export type Hypothesis = z.infer<typeof HypothesisSchema>;
 export type NoteItem = z.infer<typeof NoteItemSchema>;
+export type NoteRevision = z.infer<typeof NoteRevisionSchema>;
 export type NotebookFile = z.infer<typeof NotebookFileSchema>;
 export type Section = z.infer<typeof SectionSchema>;
 export type SectionType = z.infer<typeof SectionTypeSchema>;
