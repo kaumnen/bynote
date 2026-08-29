@@ -84,7 +84,7 @@ export function registerLibraryTools({
     {
       name: "create_notebook",
       description:
-        "Create a notebook in this browser and open it. kind is incident, bug, feature, or custom. Severity only matters for incident and bug.",
+        "Create a notebook in this browser and open it. kind is plan, campaign, meeting, incident, bug, feature, or custom. Prefer plan, campaign, or meeting for GTM and everyday work. Use incident or bug for engineering. Severity only matters for incident and bug.",
       inputSchema: schema(toolInputSchemas.createNotebook),
       execute(input) {
         const parsed = toolInputSchemas.createNotebook.parse(input);

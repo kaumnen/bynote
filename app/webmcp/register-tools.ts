@@ -6,6 +6,7 @@ import {
   type CaseAction,
   type CaseState,
 } from "../../src/shared/schemas";
+import { describeSection } from "../../src/shared/templates";
 import type {
   ModelContext,
   WebMcpTool,
@@ -36,7 +37,7 @@ function stateSummary(state: CaseState) {
     severity: state.severity,
     status: state.status,
     revision: state.revision,
-    sections: state.sections,
+    sections: state.sections.map(describeSection),
     entries: state.entries,
     hypotheses: state.hypotheses,
     tasks: state.tasks,
@@ -81,7 +82,7 @@ export function registerCaseTools({
     {
       name: "read_case",
       description:
-        "Read the notebook open in this tab, including template, sections, notes, findings, hypotheses, tasks, and participants. Call this before changing the notebook. If you need a different notebook, call list_notebooks then open_notebook.",
+        "Read the notebook open in this tab. Each section has type, typeLabel, hint, and title. Type is what you can add there. Title is only a label. Call this before changing the notebook. If you need a different notebook, call list_notebooks then open_notebook.",
       inputSchema: schema(toolInputSchemas.readCase),
       execute() {
         return result("Current notebook", stateSummary(getState()));
@@ -110,7 +111,7 @@ export function registerCaseTools({
     {
       name: "set_sections",
       description:
-        "Replace the notebook layout with an ordered list of sections. Allowed types: note, timeline, findings, hypotheses, tasks, checklist, decisions. Use this to organize a custom notebook. Do not invent CSS or HTML.",
+        "Replace the notebook layout with an ordered list of sections. Each section has a type and a title. Type is note, timeline, findings, hypotheses, tasks, checklist, or decisions. Title is only a label. Do not invent CSS or HTML.",
       inputSchema: schema(toolInputSchemas.setSections),
       async execute(input) {
         const parsed = toolInputSchemas.setSections.parse(input);
@@ -118,7 +119,7 @@ export function registerCaseTools({
           agentAction({ type: "set_sections", sections: parsed.sections }),
         );
         return result("Sections updated", {
-          sections: state.sections,
+          sections: state.sections.map(describeSection),
           revision: state.revision,
         });
       },
@@ -126,7 +127,7 @@ export function registerCaseTools({
     {
       name: "add_section",
       description:
-        "Append one section to the notebook. Allowed types: note, timeline, findings, hypotheses, tasks, checklist, decisions.",
+        "Append one section. Type is note, timeline, findings, hypotheses, tasks, checklist, or decisions. Title is only a label. Goal is usually a note, not a task list.",
       inputSchema: schema(toolInputSchemas.addSection),
       async execute(input) {
         const parsed = toolInputSchemas.addSection.parse(input);
@@ -137,8 +138,9 @@ export function registerCaseTools({
             title: parsed.title,
           }),
         );
+        const section = state.sections.at(-1);
         return result("Section added", {
-          section: state.sections.at(-1),
+          section: section ? describeSection(section) : null,
           revision: state.revision,
         });
       },
@@ -203,7 +205,8 @@ export function registerCaseTools({
     },
     {
       name: "post_update",
-      description: "Post a concise progress update to the timeline.",
+      description:
+        "Post a progress update to the timeline. Markdown and mermaid diagrams are rendered.",
       inputSchema: schema(toolInputSchemas.postUpdate),
       async execute(input) {
         const parsed = toolInputSchemas.postUpdate.parse(input);
@@ -229,7 +232,7 @@ export function registerCaseTools({
     {
       name: "add_note",
       description:
-        "Append text to a note section. Use the section ID from read_case.",
+        "Append markdown to a note section. Use a section whose type is note. Get the section ID from read_case. Mermaid diagrams in fenced mermaid code blocks are rendered.",
       inputSchema: schema(toolInputSchemas.addNote),
       async execute(input) {
         const parsed = toolInputSchemas.addNote.parse(input);
@@ -246,7 +249,7 @@ export function registerCaseTools({
     {
       name: "add_decision",
       description:
-        "Record a decision in a decisions section. Use the section ID from read_case.",
+        "Record a decision in a decisions section. Use a section whose type is decisions. Get the section ID from read_case. Markdown and mermaid diagrams are rendered.",
       inputSchema: schema(toolInputSchemas.addDecision),
       async execute(input) {
         const parsed = toolInputSchemas.addDecision.parse(input);
@@ -263,7 +266,7 @@ export function registerCaseTools({
     {
       name: "add_checklist_item",
       description:
-        "Add an item to a checklist section. Use the section ID from read_case.",
+        "Add an item to a checklist section. Use a section whose type is checklist. Get the section ID from read_case.",
       inputSchema: schema(toolInputSchemas.addChecklistItem),
       async execute(input) {
         const parsed = toolInputSchemas.addChecklistItem.parse(input);

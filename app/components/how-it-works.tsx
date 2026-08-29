@@ -2,22 +2,29 @@ import { useRef, useState } from "react";
 
 const examples = [
   {
+    kind: "Plan",
+    title: "Q3 partner rollout",
+    detail: "Goal, dates, a gantt, tasks, and the call you already made.",
+  },
+  {
+    kind: "Campaign",
+    title: "Spring launch in APAC",
+    detail:
+      "Audience, messaging, a funnel diagram, a channel checklist, and who goes first.",
+  },
+  {
+    kind: "Meeting",
+    title: "Weekly GTM standup",
+    detail: "Agenda, notes with a journey diagram, decisions, and what happens next.",
+  },
+  {
     kind: "Incident",
     title: "Checkout errors after a release",
-    detail: "Timeline of what changed, hypotheses, tasks, a resolution to accept.",
+    detail:
+      "Engineering template. Timeline, a sequence diagram, hypotheses, tasks, a resolution to accept.",
   },
   {
-    kind: "Bug",
-    title: "Search skips page two",
-    detail: "Repro steps, expected vs actual, findings, then the fix work.",
-  },
-  {
-    kind: "Feature",
-    title: "Export notes as a file",
-    detail: "Goal, spec and decisions, a task list for the people building it.",
-  },
-  {
-    kind: "Custom",
+    kind: "Blank",
     title: "Whatever this page is for",
     detail: "A blank notebook. Add only the sections you need.",
   },
@@ -80,16 +87,19 @@ export function HowItWorks() {
             <section>
               <p className="eyebrow">Start</p>
               <p>
-                Create an incident, bug, feature, or blank custom notebook.
-                Templates arrive with sections already named.
+                Create a plan, campaign, meeting, or blank notebook.
+                Engineering templates for incidents, bugs, and features sit
+                in their own group.
               </p>
             </section>
             <section>
               <p className="eyebrow">Write</p>
               <p>
-                Add notes, timelines, findings, hypotheses, tasks, checklists,
-                and decisions. Your name signs what you write. Filter by author
-                when people and agents are both in it.
+                Add notes, tasks, checklists, and decisions. Each section
+                shows its type, so a Goal note is not the same as a task
+                list. Notes can use markdown headings, lists, links, and
+                mermaid diagrams. Filter by author when people and agents
+                are both in it.
               </p>
             </section>
             <section>

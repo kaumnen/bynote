@@ -2,17 +2,35 @@ import type { CaseState, CreateCaseInput, Section } from "./schemas";
 
 export type CaseKind = CreateCaseInput["kind"];
 
+export const TEMPLATE_GROUPS = [
+  {
+    id: "work",
+    label: "Work",
+    kinds: ["plan", "campaign", "meeting", "custom"],
+  },
+  {
+    id: "engineering",
+    label: "Engineering",
+    kinds: ["incident", "bug", "feature"],
+  },
+] as const satisfies ReadonlyArray<{
+  id: string;
+  label: string;
+  kinds: readonly CaseKind[];
+}>;
+
+const kindLabels: Record<CaseKind, string> = {
+  plan: "Plan",
+  campaign: "Campaign",
+  meeting: "Meeting",
+  incident: "Incident",
+  bug: "Bug",
+  feature: "Feature",
+  custom: "Blank",
+};
+
 export function kindLabel(kind: CaseKind) {
-  if (kind === "incident") {
-    return "Incident";
-  }
-  if (kind === "bug") {
-    return "Bug";
-  }
-  if (kind === "feature") {
-    return "Feature";
-  }
-  return "Custom";
+  return kindLabels[kind];
 }
 
 export function kindUsesSeverity(kind: CaseKind) {
@@ -23,29 +41,39 @@ export function defaultSeverityFor(kind: CaseKind): CreateCaseInput["severity"] 
   return kindUsesSeverity(kind) ? "high" : "medium";
 }
 
-export function createFieldCopy(kind: CaseKind) {
-  if (kind === "incident") {
-    return {
-      title: "Checkout errors after release",
-      brief: "What broke, and who is affected?",
-    };
-  }
-  if (kind === "bug") {
-    return {
-      title: "Search skips page two",
-      brief: "What happens, and how do you reproduce it?",
-    };
-  }
-  if (kind === "feature") {
-    return {
-      title: "Export notes as a file",
-      brief: "What should this do, and for whom?",
-    };
-  }
-  return {
+const fieldCopy: Record<CaseKind, { title: string; brief: string }> = {
+  plan: {
+    title: "Q3 partner rollout",
+    brief: "What are you working toward?",
+  },
+  campaign: {
+    title: "Spring launch in APAC",
+    brief: "Who is this for, and what should they do?",
+  },
+  meeting: {
+    title: "Weekly GTM standup",
+    brief: "What is this conversation for?",
+  },
+  incident: {
+    title: "Checkout errors after release",
+    brief: "What broke, and who is affected?",
+  },
+  bug: {
+    title: "Search skips page two",
+    brief: "What happens, and how do you reproduce it?",
+  },
+  feature: {
+    title: "Export notes as a file",
+    brief: "What should this do, and for whom?",
+  },
+  custom: {
     title: "Untitled notebook",
     brief: "What is this notebook for?",
-  };
+  },
+};
+
+export function createFieldCopy(kind: CaseKind) {
+  return fieldCopy[kind];
 }
 
 export function statusOptions(kind: CaseKind): {
@@ -111,9 +139,47 @@ export const SECTION_PALETTE = [
   },
 ];
 
+export function sectionCopy(type: Section["type"]) {
+  const copy = SECTION_PALETTE.find((item) => item.type === type);
+  if (!copy) {
+    throw new Error(`Unknown section type ${type}`);
+  }
+  return copy;
+}
+
+export function describeSection(section: Pick<Section, "id" | "type" | "title">) {
+  const copy = sectionCopy(section.type);
+  return {
+    id: section.id,
+    type: section.type,
+    typeLabel: copy.label,
+    hint: copy.hint,
+    title: section.title,
+  };
+}
+
 type SectionSeed = Pick<Section, "type" | "title">;
 
 const templates: Record<CreateCaseInput["kind"], SectionSeed[]> = {
+  plan: [
+    { type: "note", title: "Goal" },
+    { type: "note", title: "Notes" },
+    { type: "tasks", title: "Tasks" },
+    { type: "decisions", title: "Decisions" },
+  ],
+  campaign: [
+    { type: "note", title: "Audience" },
+    { type: "note", title: "Messaging" },
+    { type: "checklist", title: "Channels" },
+    { type: "tasks", title: "Tasks" },
+    { type: "decisions", title: "Decisions" },
+  ],
+  meeting: [
+    { type: "checklist", title: "Agenda" },
+    { type: "note", title: "Notes" },
+    { type: "decisions", title: "Decisions" },
+    { type: "tasks", title: "Tasks" },
+  ],
   incident: [
     { type: "timeline", title: "Workstream" },
     { type: "hypotheses", title: "Hypotheses" },

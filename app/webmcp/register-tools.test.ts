@@ -101,6 +101,27 @@ describe("WebMCP tools", () => {
       id: "case-1",
       revision: 3,
     });
+    expect(
+      (
+        readResult?.structuredContent as {
+          sections: Array<{ type: string; typeLabel: string; title: string }>;
+        }
+      ).sections,
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "note",
+          typeLabel: "Note",
+          hint: "A freeform written block",
+          title: "Goal",
+        }),
+        expect.objectContaining({
+          type: "tasks",
+          typeLabel: "Tasks",
+          title: "Tasks",
+        }),
+      ]),
+    );
 
     registration.dispose();
     expect(signals.every((signal) => signal.aborted)).toBe(true);

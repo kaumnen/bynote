@@ -1,6 +1,17 @@
 import { z } from "zod";
 
-export const CaseKindSchema = z.enum(["bug", "incident", "feature", "custom"]);
+export const CaseKindSchema = z.enum([
+  "plan",
+  "campaign",
+  "meeting",
+  "incident",
+  "bug",
+  "feature",
+  "custom",
+]);
+export const ENTRY_BODY_MAX = 4_000;
+export const NOTE_BODY_MAX = 8_000;
+export const HYPOTHESIS_DETAIL_MAX = 4_000;
 export const CaseStatusSchema = z.enum([
   "open",
   "investigating",
@@ -31,7 +42,7 @@ export const ActorSchema = z
 
 export const CreateCaseInputSchema = z
   .object({
-    kind: CaseKindSchema.default("incident"),
+    kind: CaseKindSchema.default("plan"),
     title: z.string().trim().min(3).max(120),
     summary: z.string().trim().max(600).default(""),
     severity: SeveritySchema.default("high"),
@@ -170,14 +181,14 @@ export const CaseActionSchema = z.discriminatedUnion("type", [
   z
     .object({
       type: z.literal("post_update"),
-      body: z.string().trim().min(1).max(2_000),
+      body: z.string().trim().min(1).max(ENTRY_BODY_MAX),
       ...actionBase,
     })
     .strict(),
   z
     .object({
       type: z.literal("add_finding"),
-      body: z.string().trim().min(1).max(2_000),
+      body: z.string().trim().min(1).max(ENTRY_BODY_MAX),
       ...actionBase,
     })
     .strict(),
@@ -185,7 +196,7 @@ export const CaseActionSchema = z.discriminatedUnion("type", [
     .object({
       type: z.literal("add_hypothesis"),
       title: z.string().trim().min(1).max(180),
-      detail: z.string().trim().max(1_200).default(""),
+      detail: z.string().trim().max(HYPOTHESIS_DETAIL_MAX).default(""),
       confidence: ConfidenceSchema.default("medium"),
       ...actionBase,
     })
@@ -209,7 +220,7 @@ export const CaseActionSchema = z.discriminatedUnion("type", [
   z
     .object({
       type: z.literal("propose_resolution"),
-      body: z.string().trim().min(1).max(2_000),
+      body: z.string().trim().min(1).max(ENTRY_BODY_MAX),
       ...actionBase,
     })
     .strict(),
@@ -231,7 +242,7 @@ export const CaseActionSchema = z.discriminatedUnion("type", [
     .object({
       type: z.literal("add_note"),
       sectionId: z.string().min(1).max(100),
-      body: z.string().trim().min(1).max(4_000),
+      body: z.string().trim().min(1).max(NOTE_BODY_MAX),
       ...actionBase,
     })
     .strict(),
@@ -239,7 +250,7 @@ export const CaseActionSchema = z.discriminatedUnion("type", [
     .object({
       type: z.literal("add_decision"),
       sectionId: z.string().min(1).max(100),
-      body: z.string().trim().min(1).max(4_000),
+      body: z.string().trim().min(1).max(NOTE_BODY_MAX),
       ...actionBase,
     })
     .strict(),
@@ -294,13 +305,13 @@ export const toolInputSchemas = {
     .strict(),
   addFinding: z
     .object({
-      body: z.string().trim().min(1).max(2_000),
+      body: z.string().trim().min(1).max(ENTRY_BODY_MAX),
     })
     .strict(),
   addHypothesis: z
     .object({
       title: z.string().trim().min(1).max(180),
-      detail: z.string().trim().max(1_200).default(""),
+      detail: z.string().trim().max(HYPOTHESIS_DETAIL_MAX).default(""),
       confidence: ConfidenceSchema.default("medium"),
     })
     .strict(),
@@ -318,24 +329,24 @@ export const toolInputSchemas = {
     .strict(),
   postUpdate: z
     .object({
-      body: z.string().trim().min(1).max(2_000),
+      body: z.string().trim().min(1).max(ENTRY_BODY_MAX),
     })
     .strict(),
   proposeResolution: z
     .object({
-      body: z.string().trim().min(1).max(2_000),
+      body: z.string().trim().min(1).max(ENTRY_BODY_MAX),
     })
     .strict(),
   addNote: z
     .object({
       sectionId: z.string().min(1).max(100),
-      body: z.string().trim().min(1).max(4_000),
+      body: z.string().trim().min(1).max(NOTE_BODY_MAX),
     })
     .strict(),
   addDecision: z
     .object({
       sectionId: z.string().min(1).max(100),
-      body: z.string().trim().min(1).max(4_000),
+      body: z.string().trim().min(1).max(NOTE_BODY_MAX),
     })
     .strict(),
   addChecklistItem: z

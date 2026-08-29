@@ -3,6 +3,7 @@ import {
   useMemo,
   useState,
   type FormEvent,
+  type ReactNode,
 } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 
@@ -10,6 +11,7 @@ import { readStoredActorName, useActor } from "../hooks/use-actor";
 import { useCaseRoom } from "../hooks/use-case-room";
 import { useWebMcp } from "../hooks/use-webmcp";
 import { HowItWorks } from "../components/how-it-works";
+import { MarkdownBody } from "../components/markdown-body";
 import { SiteFooter } from "../components/site-footer";
 import {
   clearOpenNotebook,
@@ -30,18 +32,21 @@ import {
   SECTION_PALETTE,
   kindLabel,
   kindUsesSeverity,
+  sectionCopy,
   severityLabel,
   statusOptions,
 } from "../../src/shared/templates";
-import type {
-  Actor,
-  CaseAction,
-  CaseEntry,
-  CaseState,
-  CaseStatusSchema,
-  Section,
-  SectionType,
-  TaskStatusSchema,
+import {
+  ENTRY_BODY_MAX,
+  NOTE_BODY_MAX,
+  type Actor,
+  type CaseAction,
+  type CaseEntry,
+  type CaseState,
+  type CaseStatusSchema,
+  type Section,
+  type SectionType,
+  type TaskStatusSchema,
 } from "../../src/shared/schemas";
 import type { z } from "zod";
 
@@ -63,8 +68,8 @@ const composerLabels: Record<ComposerKind, string> = {
 };
 
 const composerPlaceholders: Record<ComposerKind, string> = {
-  update: "What changed?",
-  finding: "What did you verify?",
+  update: "What changed? Markdown and mermaid work.",
+  finding: "What did you verify? Markdown and mermaid work.",
   hypothesis: "What could explain this?",
   task: "What needs to happen?",
   resolution: "What should resolve this?",
@@ -614,8 +619,9 @@ function NotebookWorkspace({ initialState }: { initialState: CaseState }) {
           <div className="empty-notebook">
             <h2>No sections yet</h2>
             <p>
-              Add a note, a task list, or whatever this page needs. An agent
-              that supports WebMCP can set this up too.
+              Add a note, a task list, or whatever this page needs. Notes can
+              use markdown and mermaid diagrams. An agent that supports WebMCP
+              can set this up too.
             </p>
             {addSectionForm}
           </div>
@@ -629,6 +635,27 @@ function NotebookWorkspace({ initialState }: { initialState: CaseState }) {
         prompt={notebookAgentPrompt()}
       />
     </main>
+  );
+}
+
+function SectionHeading({
+  section,
+  count,
+}: {
+  section: Section;
+  count: ReactNode;
+}) {
+  const copy = sectionCopy(section.type);
+  return (
+    <div className="section-heading">
+      <div>
+        <p className="eyebrow" title={copy.hint}>
+          {copy.label}
+        </p>
+        <h2 id={section.id}>{section.title}</h2>
+      </div>
+      {count != null && count !== "" ? <span>{count}</span> : null}
+    </div>
   );
 }
 
@@ -676,19 +703,18 @@ function NotebookSection({
         : ["update", "finding", "hypothesis", "task", "resolution"];
 
     return (
-      <section className="notebook-section" aria-labelledby={section.id}>
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">
-              {section.type === "findings" ? "Verified facts" : "Activity"}
-            </p>
-            <h2 id={section.id}>{section.title}</h2>
-          </div>
-          <span>
-            {items.length}
-            {authorFilter === "all" ? "" : ` filtered`}
-          </span>
-        </div>
+      <section
+        className="notebook-section"
+        data-section-type={section.type}
+        aria-labelledby={section.id}
+      >
+        <SectionHeading section={section} count={
+            <>
+              {items.length}
+              {authorFilter === "all" ? "" : " filtered"}
+            </>
+          }
+        />
         <Composer
           kinds={kinds}
           actor={actor}
@@ -714,11 +740,12 @@ function NotebookSection({
       matchesAuthor(author),
     );
     return (
-      <section className="notebook-section" aria-labelledby={section.id}>
-        <div className="section-heading compact">
-          <h2 id={section.id}>{section.title}</h2>
-          <span>{items.length}</span>
-        </div>
+      <section
+        className="notebook-section"
+        data-section-type={section.type}
+        aria-labelledby={section.id}
+      >
+        <SectionHeading section={section} count={items.length} />
         <Composer
           kinds={["hypothesis"]}
           actor={actor}
@@ -734,7 +761,9 @@ function NotebookSection({
                   <span>{hypothesis.status}</span>
                 </div>
                 <strong>{hypothesis.title}</strong>
-                {hypothesis.detail ? <p>{hypothesis.detail}</p> : null}
+                {hypothesis.detail ? (
+                  <MarkdownBody source={hypothesis.detail} />
+                ) : null}
                 <small className="author-mini">
                   <i aria-hidden="true">
                     {hypothesis.author.kind === "agent" ? "A" : "H"}
@@ -756,11 +785,12 @@ function NotebookSection({
       matchesAuthor(author),
     );
     return (
-      <section className="notebook-section" aria-labelledby={section.id}>
-        <div className="section-heading compact">
-          <h2 id={section.id}>{section.title}</h2>
-          <span>{items.length}</span>
-        </div>
+      <section
+        className="notebook-section"
+        data-section-type={section.type}
+        aria-labelledby={section.id}
+      >
+        <SectionHeading section={section} count={items.length} />
         <Composer
           kinds={["task"]}
           actor={actor}
@@ -816,14 +846,16 @@ function NotebookSection({
       (item) => item.sectionId === section.id && matchesAuthor(item.author),
     );
     return (
-      <section className="notebook-section" aria-labelledby={section.id}>
-        <div className="section-heading compact">
-          <h2 id={section.id}>{section.title}</h2>
-          <span>{items.length}</span>
-        </div>
+      <section
+        className="notebook-section"
+        data-section-type={section.type}
+        aria-labelledby={section.id}
+      >
+        <SectionHeading section={section} count={items.length} />
         <SectionTextForm
-          placeholder="Write a note"
+          placeholder="Write a note. Headings, lists, and mermaid diagrams work."
           disabled={busy || actor.id === "pending"}
+          markdown
           onSubmit={(value) =>
             submitAction({
               type: "add_note",
@@ -838,7 +870,7 @@ function NotebookSection({
           <ol className="focus-list">
             {items.toReversed().map((item) => (
               <li key={item.id} className={toneFor(item.author)}>
-                <p>{item.body}</p>
+                <MarkdownBody source={item.body} />
                 <small className="author-mini">
                   <i aria-hidden="true">
                     {item.author.kind === "agent" ? "A" : "H"}
@@ -864,14 +896,19 @@ function NotebookSection({
         item.kind === "resolution-proposal" && matchesAuthor(item.author),
     );
     return (
-      <section className="notebook-section" aria-labelledby={section.id}>
-        <div className="section-heading compact">
-          <h2 id={section.id}>{section.title}</h2>
-          <span>{items.length + proposals.length}</span>
-        </div>
+      <section
+        className="notebook-section"
+        data-section-type={section.type}
+        aria-labelledby={section.id}
+      >
+        <SectionHeading
+          section={section}
+          count={items.length + proposals.length}
+        />
         <SectionTextForm
-          placeholder="What was decided?"
+          placeholder="What was decided? Markdown and mermaid work."
           disabled={busy || actor.id === "pending"}
+          markdown
           onSubmit={(value) =>
             submitAction({
               type: "add_decision",
@@ -894,7 +931,7 @@ function NotebookSection({
           <ol className="focus-list">
             {items.toReversed().map((item) => (
               <li key={item.id} className={toneFor(item.author)}>
-                <p>{item.body}</p>
+                <MarkdownBody source={item.body} />
                 <small className="author-mini">
                   <i aria-hidden="true">
                     {item.author.kind === "agent" ? "A" : "H"}
@@ -916,13 +953,15 @@ function NotebookSection({
     (item) => item.sectionId === section.id && matchesAuthor(item.author),
   );
   return (
-    <section className="notebook-section" aria-labelledby={section.id}>
-      <div className="section-heading compact">
-        <h2 id={section.id}>{section.title}</h2>
-        <span>
-          {items.filter(({ done }) => done).length}/{items.length}
-        </span>
-      </div>
+    <section
+      className="notebook-section"
+      data-section-type={section.type}
+      aria-labelledby={section.id}
+    >
+      <SectionHeading
+        section={section}
+        count={`${items.filter(({ done }) => done).length}/${items.length}`}
+      />
       <SectionTextForm
         placeholder="Add an item"
         disabled={busy || actor.id === "pending"}
@@ -981,7 +1020,12 @@ function Composer({
 }) {
   const [kind, setKind] = useState<ComposerKind>(kinds[0] ?? "update");
   const [body, setBody] = useState("");
+  const [preview, setPreview] = useState(false);
   const active = kinds.includes(kind) ? kind : (kinds[0] ?? "update");
+  const canPreview =
+    active === "update" || active === "finding" || active === "resolution";
+  const limit =
+    active === "task" ? 240 : active === "hypothesis" ? 180 : ENTRY_BODY_MAX;
 
   return (
     <form
@@ -992,7 +1036,10 @@ function Composer({
         if (!value) {
           return;
         }
-        void onSubmit(active, value).then(() => setBody(""));
+        void onSubmit(active, value).then(() => {
+          setBody("");
+          setPreview(false);
+        });
       }}
     >
       <div className="composer-top">
@@ -1015,17 +1062,42 @@ function Composer({
         ) : (
           <span>{composerLabels[active]}</span>
         )}
-        <span>{actor.name}</span>
+        <div className="composer-top-end">
+          {canPreview ? (
+            <button
+              className={preview ? "text-button composer-preview-on" : "text-button"}
+              type="button"
+              aria-pressed={preview}
+              onClick={() => setPreview((open) => !open)}
+            >
+              {preview ? "Write" : "Preview"}
+            </button>
+          ) : null}
+          <span>{actor.name}</span>
+        </div>
       </div>
-      <textarea
-        value={body}
-        onChange={(event) => setBody(event.target.value)}
-        placeholder={composerPlaceholders[active]}
-        maxLength={2_000}
-        rows={3}
-      />
+      {preview && canPreview ? (
+        <div className="composer-preview">
+          {body.trim() ? (
+            <MarkdownBody source={body} />
+          ) : (
+            <p className="empty-copy">Nothing to preview.</p>
+          )}
+        </div>
+      ) : (
+        <textarea
+          value={body}
+          onChange={(event) => setBody(event.target.value)}
+          placeholder={composerPlaceholders[active]}
+          maxLength={limit}
+          rows={3}
+        />
+      )}
       <div className="composer-actions">
-        <span>{body.length}/2000</span>
+        <span>
+          {body.length}/{limit}
+          {canPreview ? " · Markdown" : ""}
+        </span>
         <button
           className="button button-primary"
           type="submit"
@@ -1041,13 +1113,18 @@ function Composer({
 function SectionTextForm({
   placeholder,
   disabled,
+  markdown = false,
   onSubmit,
 }: {
   placeholder: string;
   disabled: boolean;
+  markdown?: boolean;
   onSubmit: (value: string) => Promise<void>;
 }) {
   const [value, setValue] = useState("");
+  const [preview, setPreview] = useState(false);
+  const limit = markdown ? NOTE_BODY_MAX : 240;
+
   return (
     <form
       className="composer"
@@ -1057,19 +1134,48 @@ function SectionTextForm({
         if (!next) {
           return;
         }
-        void onSubmit(next).then(() => setValue(""));
+        void onSubmit(next).then(() => {
+          setValue("");
+          setPreview(false);
+        });
       }}
     >
-      <textarea
-        value={value}
-        onChange={(event) => setValue(event.target.value)}
-        placeholder={placeholder}
-        maxLength={4_000}
-        rows={3}
-        disabled={disabled}
-      />
+      {markdown ? (
+        <div className="composer-top">
+          <span>Markdown</span>
+          <button
+            className={preview ? "text-button composer-preview-on" : "text-button"}
+            type="button"
+            aria-pressed={preview}
+            onClick={() => setPreview((open) => !open)}
+          >
+            {preview ? "Write" : "Preview"}
+          </button>
+        </div>
+      ) : null}
+      {preview && markdown ? (
+        <div className="composer-preview">
+          {value.trim() ? (
+            <MarkdownBody source={value} />
+          ) : (
+            <p className="empty-copy">Nothing to preview.</p>
+          )}
+        </div>
+      ) : (
+        <textarea
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+          placeholder={placeholder}
+          maxLength={limit}
+          rows={3}
+          disabled={disabled}
+        />
+      )}
       <div className="composer-actions">
-        <span>{value.length}/4000</span>
+        <span>
+          {value.length}/{limit}
+          {markdown ? " · Markdown" : ""}
+        </span>
         <button
           className="button button-primary"
           type="submit"
@@ -1108,7 +1214,7 @@ function EntryList({
               <span className="entry-kind">{entryLabels[item.kind]}</span>
               <time dateTime={item.createdAt}>{timeLabel(item.createdAt)}</time>
             </header>
-            <p>{item.body}</p>
+            <MarkdownBody source={item.body} />
             <footer>
               <strong className="author-label">{item.author.name}</strong>
               <span className="role-label">

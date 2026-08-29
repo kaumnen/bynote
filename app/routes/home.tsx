@@ -15,7 +15,7 @@ import {
 } from "../lib/local-notebook";
 import {
   DEMO_DEFAULTS,
-  DEMO_KINDS,
+  DEMO_GROUPS,
   demoLabel,
   isDefaultDemoTitle,
   type DemoKind,
@@ -27,6 +27,7 @@ import { SiteFooter } from "../components/site-footer";
 import { libraryAgentPrompt } from "../webmcp/prompts";
 import { registerLibraryTools } from "../webmcp/register-library-tools";
 import {
+  TEMPLATE_GROUPS,
   createFieldCopy,
   defaultSeverityFor,
   kindLabel,
@@ -56,11 +57,13 @@ function createdLabel(value: string) {
 
 export function meta() {
   return [
-    { title: "Bynote | Local agent notebook" },
+    {
+      title: "Bynote | Local agent notebook",
+    },
     {
       name: "description",
       content:
-        "A local notebook where you and your agents can track incidents, bugs, and feature work. Export a JSON file to share it.",
+        "A local notebook for people and agents. Use it for campaigns, meetings, plans, and engineering work. Export a JSON file to share it.",
     },
   ];
 }
@@ -77,7 +80,7 @@ export default function Home(_props: Route.ComponentProps) {
   const [demoMenuOpen, setDemoMenuOpen] = useState(false);
   const [demoKind, setDemoKind] = useState<DemoKind | null>(null);
   const [demoName, setDemoName] = useState("");
-  const [kind, setKind] = useState<CreateCaseInput["kind"]>("incident");
+  const [kind, setKind] = useState<CreateCaseInput["kind"]>("plan");
   const [notebooks, setNotebooks] = useState<NotebookSummary[]>([]);
   const fieldCopy = createFieldCopy(kind);
   const showSeverity = kindUsesSeverity(kind);
@@ -254,30 +257,38 @@ export default function Home(_props: Route.ComponentProps) {
           <p className="eyebrow">You and your agents</p>
           <h1>Work in one notebook.</h1>
           <p>
-            Start with a template or a blank page. Add notes, findings, tasks,
-            and decisions together. Everything stays in this browser until you
-            export it.
+            Start with a campaign, a meeting, or a plan. Engineering templates
+            sit in their own group. Add notes, tasks, and decisions together.
+            Markdown and mermaid diagrams work. Everything stays in this
+            browser until you export it.
           </p>
         </div>
 
         <form className="case-form" onSubmit={openNotebook}>
           <fieldset>
             <legend>Template</legend>
-            <div className="type-choice type-choice-four">
-              {(["incident", "bug", "feature", "custom"] as const).map(
-                (value) => (
-                  <label key={value}>
-                    <input
-                      type="radio"
-                      name="kind"
-                      value={value}
-                      checked={kind === value}
-                      onChange={() => setKind(value)}
-                    />
-                    <span>{kindLabel(value)}</span>
-                  </label>
-                ),
-              )}
+            <div className="template-groups">
+              {TEMPLATE_GROUPS.map((group) => (
+                <div key={group.id} className="template-group">
+                  <p className="template-group-label">{group.label}</p>
+                  <div
+                    className={`type-choice type-choice-${group.kinds.length}`}
+                  >
+                    {group.kinds.map((value) => (
+                      <label key={value}>
+                        <input
+                          type="radio"
+                          name="kind"
+                          value={value}
+                          checked={kind === value}
+                          onChange={() => setKind(value)}
+                        />
+                        <span>{kindLabel(value)}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           </fieldset>
 
@@ -329,7 +340,10 @@ export default function Home(_props: Route.ComponentProps) {
         <div className="demo-row">
           <div>
             <strong>Need an example?</strong>
-            <p>Open a filled incident, bug, or feature notebook.</p>
+            <p>
+              Open a filled plan, campaign, meeting, or engineering notebook.
+              Blank starts empty on purpose.
+            </p>
           </div>
           <div className="demo-picker" ref={demoPicker}>
             <button
@@ -344,15 +358,25 @@ export default function Home(_props: Route.ComponentProps) {
             </button>
             {demoMenuOpen ? (
               <div className="demo-menu" role="menu" aria-label="Sample type">
-                {DEMO_KINDS.map((kind) => (
-                  <button
-                    key={kind}
-                    type="button"
-                    role="menuitem"
-                    onClick={() => pickDemo(kind)}
+                {DEMO_GROUPS.map((group) => (
+                  <div
+                    key={group.label}
+                    className="demo-menu-group"
+                    role="group"
+                    aria-label={group.label}
                   >
-                    {demoLabel(kind)}
-                  </button>
+                    <p className="demo-menu-label">{group.label}</p>
+                    {group.kinds.map((sampleKind) => (
+                      <button
+                        key={sampleKind}
+                        type="button"
+                        role="menuitem"
+                        onClick={() => pickDemo(sampleKind)}
+                      >
+                        {demoLabel(sampleKind)}
+                      </button>
+                    ))}
+                  </div>
                 ))}
               </div>
             ) : null}
@@ -472,7 +496,9 @@ export default function Home(_props: Route.ComponentProps) {
             {demoKind ? `${demoLabel(demoKind)} sample` : "Sample"}
           </p>
           <h2 id="demo-dialog-title">
-            {demoKind ? `Name the ${demoKind} sample` : "Name the sample"}
+            {demoKind
+              ? `Name the ${demoLabel(demoKind).toLowerCase()} sample`
+              : "Name the sample"}
           </h2>
           <p>Leave this blank to use the sample title.</p>
           {error ? (

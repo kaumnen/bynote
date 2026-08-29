@@ -5,7 +5,15 @@ import {
   createCaseState,
   type MutationContext,
 } from "./case-state";
-import { CreateCaseInputSchema, type Actor } from "./schemas";
+import { DEMO_DIAGRAMS } from "./demo-diagrams";
+import { DEMO_DEFAULTS, DEMO_KINDS } from "./demos";
+import { mermaidBlocks } from "./markdown";
+import {
+  CreateCaseInputSchema,
+  ENTRY_BODY_MAX,
+  NOTE_BODY_MAX,
+  type Actor,
+} from "./schemas";
 
 function testContext(): MutationContext {
   let id = 0;
@@ -176,6 +184,82 @@ describe("case state", () => {
     expect(feature.title).toBe("Saturday export drill");
     expect(feature.notes).toHaveLength(1);
     expect(feature.decisions).toHaveLength(1);
+  });
+
+  it("creates filled campaign and meeting samples", () => {
+    const campaign = createCaseState(
+      "demo-campaign",
+      CreateCaseInputSchema.parse({
+        kind: "campaign",
+        title: "Spring launch in APAC",
+        creatorName: "Guest",
+        demo: true,
+      }),
+      testContext(),
+    );
+    const meeting = createCaseState(
+      "demo-meeting",
+      CreateCaseInputSchema.parse({
+        kind: "meeting",
+        title: "Weekly GTM standup",
+        creatorName: "Guest",
+        demo: true,
+      }),
+      testContext(),
+    );
+
+    expect(campaign.kind).toBe("campaign");
+    expect(campaign.notes.some(({ body }) => body.includes("```mermaid"))).toBe(
+      true,
+    );
+    expect(campaign.checklists).toHaveLength(3);
+    expect(meeting.kind).toBe("meeting");
+    expect(meeting.notes).toHaveLength(1);
+    expect(meeting.checklists.map(({ title }) => title)).toContain(
+      "Pipeline by region",
+    );
+  });
+
+  it("puts a mermaid diagram in every filled sample", () => {
+    const fences = DEMO_KINDS.flatMap((kind) => {
+      const state = createCaseState(
+        `demo-${kind}`,
+        CreateCaseInputSchema.parse({
+          kind,
+          title: DEMO_DEFAULTS[kind].title,
+          creatorName: "Guest",
+          demo: true,
+        }),
+        testContext(),
+      );
+      const bodies = [
+        ...state.notes.map(({ body }) => body),
+        ...state.decisions.map(({ body }) => body),
+        ...state.entries.map(({ body }) => body),
+        ...state.hypotheses.map(({ detail }) => detail),
+      ];
+      for (const body of bodies) {
+        const limit = state.entries.some((entry) => entry.body === body)
+          ? ENTRY_BODY_MAX
+          : NOTE_BODY_MAX;
+        expect(body.length).toBeLessThanOrEqual(limit);
+      }
+      return bodies.flatMap((body) => mermaidBlocks(body));
+    });
+
+    expect(fences).toHaveLength(DEMO_KINDS.length);
+    expect(fences.some((chart) => chart.startsWith("gantt"))).toBe(true);
+    expect(fences.some((chart) => chart.startsWith("flowchart"))).toBe(true);
+    expect(fences.some((chart) => chart.startsWith("journey"))).toBe(true);
+    expect(fences.some((chart) => chart.startsWith("sequenceDiagram"))).toBe(
+      true,
+    );
+    expect(fences.some((chart) => chart.startsWith("stateDiagram-v2"))).toBe(
+      true,
+    );
+    expect(fences).toEqual(
+      expect.arrayContaining(Object.values(DEMO_DIAGRAMS)),
+    );
   });
 
   it("lets an agent reshape custom sections", () => {

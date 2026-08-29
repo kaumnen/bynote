@@ -1,6 +1,18 @@
 import type { CreateCaseInput } from "./schemas";
+import { kindLabel } from "./templates";
 
-export const DEMO_KINDS = ["incident", "bug", "feature"] as const;
+export const DEMO_GROUPS = [
+  {
+    label: "Work",
+    kinds: ["plan", "campaign", "meeting"],
+  },
+  {
+    label: "Engineering",
+    kinds: ["incident", "bug", "feature"],
+  },
+] as const;
+
+export const DEMO_KINDS = DEMO_GROUPS.flatMap(({ kinds }) => kinds);
 
 export type DemoKind = (typeof DEMO_KINDS)[number];
 
@@ -12,6 +24,23 @@ export const DEMO_DEFAULTS: Record<
     severity: CreateCaseInput["severity"];
   }
 > = {
+  plan: {
+    title: "Q3 partner rollout",
+    summary:
+      "One page for the goal, the dates, and the work to land it.",
+    severity: "medium",
+  },
+  campaign: {
+    title: "Spring launch in APAC",
+    summary:
+      "Sales and marketing need one page for audience, message, and the work to ship it.",
+    severity: "medium",
+  },
+  meeting: {
+    title: "Weekly GTM standup",
+    summary: "Capture what was said, what was decided, and what happens next.",
+    severity: "medium",
+  },
   incident: {
     title: "Checkout errors after release 214",
     summary:
@@ -37,13 +66,7 @@ export function isDemoKind(value: string): value is DemoKind {
 }
 
 export function demoLabel(kind: DemoKind) {
-  if (kind === "incident") {
-    return "Incident";
-  }
-  if (kind === "bug") {
-    return "Bug";
-  }
-  return "Feature";
+  return kindLabel(kind);
 }
 
 export function resolveDemoTitle(kind: DemoKind, title = "") {

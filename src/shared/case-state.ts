@@ -1,3 +1,4 @@
+import { DEMO_DIAGRAMS, mermaidFence } from "./demo-diagrams";
 import {
   DEMO_DEFAULTS,
   isDemoKind,
@@ -60,7 +61,7 @@ function sectionByTitle(sections: Section[], title: string) {
 }
 
 function demoKindFor(input: CreateCaseInput): DemoKind {
-  return isDemoKind(input.kind) ? input.kind : "incident";
+  return isDemoKind(input.kind) ? input.kind : "campaign";
 }
 
 function demoSeed(
@@ -109,7 +110,11 @@ function demoSeed(
         entry(
           context.id(),
           "finding",
-          "Database latency is unchanged. Cache misses are 3.4 times higher.",
+          [
+            "Database latency is unchanged. Cache misses are 3.4 times higher.",
+            "",
+            mermaidFence(DEMO_DIAGRAMS.incidentSequence),
+          ].join("\n"),
           trace,
           "webmcp",
           thirdAt,
@@ -155,6 +160,203 @@ function demoSeed(
     };
   }
 
+  if (kind === "campaign") {
+    const audience = sectionByTitle(sections, "Audience");
+    const messaging = sectionByTitle(sections, "Messaging");
+    const channels = sectionByTitle(sections, "Channels");
+    const decisions = sectionByTitle(sections, "Decisions");
+    return {
+      ...lists,
+      status: "investigating",
+      notes: [
+        ...(audience
+          ? [
+              noteItem(
+                context.id(),
+                audience.id,
+                [
+                  "Enterprise ops leads in APAC who already use the product.",
+                  "",
+                  "- They buy through a regional partner.",
+                  "- They care about reliability more than new features.",
+                ].join("\n"),
+                lead,
+                "human-ui",
+                firstAt,
+              ),
+            ]
+          : []),
+        ...(messaging
+          ? [
+              noteItem(
+                context.id(),
+                messaging.id,
+                [
+                  "# Message",
+                  "",
+                  "Lead with reliability. Proof: 99.9% uptime last two quarters.",
+                  "",
+                  "## Path to expand",
+                  "",
+                  mermaidFence(DEMO_DIAGRAMS.campaignFlow),
+                ].join("\n"),
+                lead,
+                "human-ui",
+                secondAt,
+              ),
+            ]
+          : []),
+      ],
+      checklists: channels
+        ? [
+            {
+              id: context.id(),
+              sectionId: channels.id,
+              title: "Partner webinar",
+              done: true,
+              author: lead,
+              source: "human-ui",
+              createdAt: firstAt,
+              updatedAt: secondAt,
+            },
+            {
+              id: context.id(),
+              sectionId: channels.id,
+              title: "Sales one-pager",
+              done: false,
+              author: lead,
+              source: "human-ui",
+              createdAt: secondAt,
+              updatedAt: secondAt,
+            },
+            {
+              id: context.id(),
+              sectionId: channels.id,
+              title: "Customer email",
+              done: false,
+              author: trace,
+              source: "webmcp",
+              createdAt: thirdAt,
+              updatedAt: thirdAt,
+            },
+          ]
+        : [],
+      tasks: [
+        {
+          id: context.id(),
+          title: "Draft the one-pager from the messaging note",
+          status: "doing",
+          assignee: "Alex",
+          author: trace,
+          source: "webmcp",
+          createdAt: thirdAt,
+          updatedAt: thirdAt,
+        },
+      ],
+      decisions: decisions
+        ? [
+            noteItem(
+              context.id(),
+              decisions.id,
+              "Keep the first wave partner-only. Direct sales follows after the webinar.",
+              lead,
+              "human-ui",
+              thirdAt,
+            ),
+          ]
+        : [],
+    };
+  }
+
+  if (kind === "meeting") {
+    const agenda = sectionByTitle(sections, "Agenda");
+    const notes = sectionByTitle(sections, "Notes");
+    const decisions = sectionByTitle(sections, "Decisions");
+    return {
+      ...lists,
+      status: "open",
+      notes: notes
+        ? [
+            noteItem(
+              context.id(),
+              notes.id,
+              [
+                "# Standup",
+                "",
+                "APAC pipeline is ahead of plan. EMEA is waiting on the one-pager.",
+                "",
+                "1. Ship the one-pager before Thursday's partner call.",
+                "2. Keep the webinar date. Do not add a second region this wave.",
+                "",
+                mermaidFence(DEMO_DIAGRAMS.meetingJourney),
+              ].join("\n"),
+              lead,
+              "human-ui",
+              secondAt,
+            ),
+          ]
+        : [],
+      checklists: agenda
+        ? [
+            {
+              id: context.id(),
+              sectionId: agenda.id,
+              title: "Pipeline by region",
+              done: true,
+              author: lead,
+              source: "human-ui",
+              createdAt: firstAt,
+              updatedAt: firstAt,
+            },
+            {
+              id: context.id(),
+              sectionId: agenda.id,
+              title: "Launch blockers",
+              done: true,
+              author: lead,
+              source: "human-ui",
+              createdAt: firstAt,
+              updatedAt: secondAt,
+            },
+            {
+              id: context.id(),
+              sectionId: agenda.id,
+              title: "Asks for product",
+              done: false,
+              author: lead,
+              source: "human-ui",
+              createdAt: firstAt,
+              updatedAt: firstAt,
+            },
+          ]
+        : [],
+      tasks: [
+        {
+          id: context.id(),
+          title: "Send the one-pager draft to EMEA before Thursday",
+          status: "open",
+          assignee: "Alex",
+          author: trace,
+          source: "webmcp",
+          createdAt: thirdAt,
+          updatedAt: thirdAt,
+        },
+      ],
+      decisions: decisions
+        ? [
+            noteItem(
+              context.id(),
+              decisions.id,
+              "Webinar date stays. No second region until the one-pager is in market.",
+              lead,
+              "human-ui",
+              thirdAt,
+            ),
+          ]
+        : [],
+    };
+  }
+
   if (kind === "bug") {
     const repro = sectionByTitle(sections, "Repro");
     const expected = sectionByTitle(sections, "Expected / actual");
@@ -167,7 +369,11 @@ function demoSeed(
               noteItem(
                 context.id(),
                 repro.id,
-                "Open search, go to page 2. The ten results are a copy of page 1.",
+                [
+                  "Open search, go to page 2. The ten results are a copy of page 1.",
+                  "",
+                  mermaidFence(DEMO_DIAGRAMS.bugSequence),
+                ].join("\n"),
                 lead,
                 "human-ui",
                 firstAt,
@@ -212,6 +418,62 @@ function demoSeed(
     };
   }
 
+  if (kind === "plan") {
+    const goal = sectionByTitle(sections, "Goal");
+    const decisions = sectionByTitle(sections, "Decisions");
+    return {
+      ...lists,
+      status: "investigating",
+      notes: goal
+        ? [
+            noteItem(
+              context.id(),
+              goal.id,
+              [
+                "# Goal",
+                "",
+                "Land the APAC partner wave before the webinar.",
+                "",
+                "## Window",
+                "",
+                "- One-pager in review this week.",
+                "- Webinar on 18 Sep.",
+                "",
+                mermaidFence(DEMO_DIAGRAMS.planGantt),
+              ].join("\n"),
+              lead,
+              "human-ui",
+              firstAt,
+            ),
+          ]
+        : [],
+      tasks: [
+        {
+          id: context.id(),
+          title: "Finish the one-pager for partner review",
+          status: "doing",
+          assignee: "Alex",
+          author: trace,
+          source: "webmcp",
+          createdAt: thirdAt,
+          updatedAt: thirdAt,
+        },
+      ],
+      decisions: decisions
+        ? [
+            noteItem(
+              context.id(),
+              decisions.id,
+              "Keep the webinar date. Slip direct sales if the one-pager is late.",
+              lead,
+              "human-ui",
+              thirdAt,
+            ),
+          ]
+        : [],
+    };
+  }
+
   const goal = sectionByTitle(sections, "Goal");
   const spec = sectionByTitle(sections, "Spec and decisions");
   return {
@@ -234,7 +496,11 @@ function demoSeed(
           noteItem(
             context.id(),
             spec.id,
-            "Keep the file on this device. A copied link will not fetch the notes.",
+            [
+              "Keep the file on this device. A copied link will not fetch the notes.",
+              "",
+              mermaidFence(DEMO_DIAGRAMS.featureStates),
+            ].join("\n"),
             trace,
             "webmcp",
             secondAt,
