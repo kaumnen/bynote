@@ -534,7 +534,7 @@ export const toolInputSchemas = {
     })
     .strict(),
   listNotebooks: z.object({}).strict(),
-  navigateToNotebook: z
+  setNotebook: z
     .object({
       notebookId: z
         .string()

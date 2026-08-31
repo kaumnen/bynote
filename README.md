@@ -16,7 +16,7 @@ Open a sample on the home page for a filled example. Clearing site data deletes 
 
 [WebMCP](https://webmachinelearning.github.io/webmcp/) tools register on `document.modelContext` when the browser supports it. Chrome has an origin trial. **Copy prompt** copies a page prompt for the agent.
 
-Home: `list_notebooks`, `navigate_to_notebook`, `create_notebook`.
+Home: `list_notebooks`, `set_notebook`, `create_notebook`.
 
 Notebook: those three plus `read_case`, `join_as_agent`, and write tools for sections, notes, tasks, and related items. Call `read_case` first. Call `join_as_agent` before writing. An agent can propose a resolution; only a human can accept it.
 
