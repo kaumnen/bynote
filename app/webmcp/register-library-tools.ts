@@ -62,16 +62,16 @@ export function registerLibraryTools({
       },
     },
     {
-      name: "show_notebook",
-      title: "Show notebook",
+      name: "navigate_to_notebook",
+      title: "Navigate to notebook",
       description:
-        "Shows a notebook in this tab by id. Returns the notebook summary and navigates the page to that notebook.",
-      inputSchema: schema(toolInputSchemas.showNotebook),
+        "Navigates this tab to a notebook by id. Returns the notebook summary.",
+      inputSchema: schema(toolInputSchemas.navigateToNotebook),
       annotations: {
         untrustedContentHint: true,
       },
       async execute(input) {
-        const parsed = toolInputSchemas.showNotebook.parse(input);
+        const parsed = toolInputSchemas.navigateToNotebook.parse(input);
         if (!isNotebookId(parsed.notebookId)) {
           throw new Error("Unknown notebook id");
         }
