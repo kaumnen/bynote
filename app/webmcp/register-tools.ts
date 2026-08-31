@@ -91,17 +91,23 @@ export function registerCaseTools({
   const tools: WebMcpTool[] = [
     {
       name: "read_case",
+      title: "Read notebook",
       description:
-        "Read the notebook open in this tab. Each section has type, typeLabel, hint, and title. Type is what you can add there. Title is only a label. Call this before changing the notebook. If you need a different notebook, call list_notebooks then open_notebook.",
+        "Reads the notebook open in this tab. Returns id, kind, title, summary, severity, status, revision, sections (type, typeLabel, hint, title), entries, hypotheses, tasks, notes, checklists, decisions, and participants.",
       inputSchema: schema(toolInputSchemas.readCase),
+      annotations: {
+        readOnlyHint: true,
+        untrustedContentHint: true,
+      },
       execute() {
         return result("Current notebook", stateSummary(getState()));
       },
     },
     {
       name: "join_as_agent",
+      title: "Join as agent",
       description:
-        "Join the active notebook with an agent name. Call this before adding work so people can identify the agent.",
+        "Joins the active notebook under an agent name. Returns the agent identity and notebook revision.",
       inputSchema: schema(toolInputSchemas.joinAsAgent),
       async execute(input) {
         const parsed = toolInputSchemas.joinAsAgent.parse(input);
@@ -120,8 +126,9 @@ export function registerCaseTools({
     },
     {
       name: "set_sections",
+      title: "Set sections",
       description:
-        "Replace the notebook layout with an ordered list of sections. Each section has a type and a title. Type is note, timeline, findings, hypotheses, tasks, checklist, or decisions. Title is only a label. Do not invent CSS or HTML.",
+        "Replaces the notebook layout with an ordered list of sections. Each section has a type of note, timeline, findings, hypotheses, tasks, checklist, or decisions, and a title label. Returns the updated sections and revision.",
       inputSchema: schema(toolInputSchemas.setSections),
       async execute(input) {
         const parsed = toolInputSchemas.setSections.parse(input);
@@ -136,8 +143,9 @@ export function registerCaseTools({
     },
     {
       name: "add_section",
+      title: "Add section",
       description:
-        "Append one section. Type is note, timeline, findings, hypotheses, tasks, checklist, or decisions. Title is only a label. Goal is usually a note, not a task list.",
+        "Appends one section. Type is note, timeline, findings, hypotheses, tasks, checklist, or decisions. Title is a label. Returns the new section and revision.",
       inputSchema: schema(toolInputSchemas.addSection),
       async execute(input) {
         const parsed = toolInputSchemas.addSection.parse(input);
@@ -157,8 +165,9 @@ export function registerCaseTools({
     },
     {
       name: "add_finding",
+      title: "Add finding",
       description:
-        "Add verified evidence or an observed fact. Do not use this for an untested explanation.",
+        "Adds verified evidence or an observed fact. Returns the notebook revision.",
       inputSchema: schema(toolInputSchemas.addFinding),
       async execute(input) {
         const parsed = toolInputSchemas.addFinding.parse(input);
@@ -170,8 +179,9 @@ export function registerCaseTools({
     },
     {
       name: "add_hypothesis",
+      title: "Add hypothesis",
       description:
-        "Add a possible explanation with supporting detail and a confidence level.",
+        "Adds a possible explanation with supporting detail and a confidence level. Returns the notebook revision.",
       inputSchema: schema(toolInputSchemas.addHypothesis),
       async execute(input) {
         const parsed = toolInputSchemas.addHypothesis.parse(input);
@@ -183,7 +193,9 @@ export function registerCaseTools({
     },
     {
       name: "create_task",
-      description: "Create a specific task in the notebook.",
+      title: "Create task",
+      description:
+        "Creates a task in the notebook. Returns the new task and revision.",
       inputSchema: schema(toolInputSchemas.createTask),
       async execute(input) {
         const parsed = toolInputSchemas.createTask.parse(input);
@@ -199,8 +211,9 @@ export function registerCaseTools({
     },
     {
       name: "update_task",
+      title: "Update task",
       description:
-        "Change an existing task to open, doing, or done. Use a task ID returned by read_case or create_task.",
+        "Changes an existing task to open, doing, or done. Returns the updated task and revision.",
       inputSchema: schema(toolInputSchemas.updateTask),
       async execute(input) {
         const parsed = toolInputSchemas.updateTask.parse(input);
@@ -215,8 +228,9 @@ export function registerCaseTools({
     },
     {
       name: "post_update",
+      title: "Post update",
       description:
-        "Post a progress update to the timeline. Markdown and mermaid diagrams are rendered.",
+        "Posts a progress update to the timeline. Markdown and mermaid diagrams are rendered. Returns the notebook revision.",
       inputSchema: schema(toolInputSchemas.postUpdate),
       async execute(input) {
         const parsed = toolInputSchemas.postUpdate.parse(input);
@@ -228,8 +242,9 @@ export function registerCaseTools({
     },
     {
       name: "propose_resolution",
+      title: "Propose resolution",
       description:
-        "Propose a resolution for human review. This does not resolve the notebook. A person must accept the proposal in Bynote.",
+        "Proposes a resolution for human review. This does not resolve the notebook. Returns the notebook revision.",
       inputSchema: schema(toolInputSchemas.proposeResolution),
       async execute(input) {
         const parsed = toolInputSchemas.proposeResolution.parse(input);
@@ -241,8 +256,9 @@ export function registerCaseTools({
     },
     {
       name: "add_note",
+      title: "Add note",
       description:
-        "Append markdown to a note section. Use a section whose type is note. Get the section ID from read_case. Mermaid diagrams in fenced mermaid code blocks are rendered. Task list checkboxes can later be toggled with toggle_note_task.",
+        "Appends markdown to a note section. Mermaid diagrams in fenced mermaid code blocks are rendered. Returns the notebook revision.",
       inputSchema: schema(toolInputSchemas.addNote),
       async execute(input) {
         const parsed = toolInputSchemas.addNote.parse(input);
@@ -258,8 +274,9 @@ export function registerCaseTools({
     },
     {
       name: "revise_note",
+      title: "Revise note",
       description:
-        "Replace the body of a sent note. The same note stays in place. History keeps the previous body, who changed it, and when. Use a note ID from read_case.",
+        "Replaces the body of a sent note in place. History keeps the previous body, who changed it, and when. Returns the updated note and revision.",
       inputSchema: schema(toolInputSchemas.reviseNote),
       async execute(input) {
         const parsed = toolInputSchemas.reviseNote.parse(input);
@@ -279,8 +296,9 @@ export function registerCaseTools({
     },
     {
       name: "toggle_note_task",
+      title: "Toggle note task",
       description:
-        "Toggle a markdown task list checkbox in a sent note. taskIndex is the 0-based checkbox in that note, skipping fenced code. Use a note ID from read_case.",
+        "Toggles a markdown task list checkbox in a sent note. taskIndex is the 0-based checkbox in that note, skipping fenced code. Returns the updated note and revision.",
       inputSchema: schema(toolInputSchemas.toggleNoteTask),
       async execute(input) {
         const parsed = toolInputSchemas.toggleNoteTask.parse(input);
@@ -300,8 +318,9 @@ export function registerCaseTools({
     },
     {
       name: "add_decision",
+      title: "Add decision",
       description:
-        "Record a decision in a decisions section. Use a section whose type is decisions. Get the section ID from read_case. Markdown and mermaid diagrams are rendered.",
+        "Records a decision in a decisions section. Markdown and mermaid diagrams are rendered. Returns the notebook revision.",
       inputSchema: schema(toolInputSchemas.addDecision),
       async execute(input) {
         const parsed = toolInputSchemas.addDecision.parse(input);
@@ -317,8 +336,9 @@ export function registerCaseTools({
     },
     {
       name: "add_checklist_item",
+      title: "Add checklist item",
       description:
-        "Add an item to a checklist section. Use a section whose type is checklist. Get the section ID from read_case.",
+        "Adds an item to a checklist section. Returns the new item and revision.",
       inputSchema: schema(toolInputSchemas.addChecklistItem),
       async execute(input) {
         const parsed = toolInputSchemas.addChecklistItem.parse(input);
@@ -337,7 +357,9 @@ export function registerCaseTools({
     },
     {
       name: "toggle_checklist_item",
-      description: "Toggle a checklist item done or not done.",
+      title: "Toggle checklist item",
+      description:
+        "Toggles a checklist item done or not done. Returns the updated item and revision.",
       inputSchema: schema(toolInputSchemas.toggleChecklistItem),
       async execute(input) {
         const parsed = toolInputSchemas.toggleChecklistItem.parse(input);

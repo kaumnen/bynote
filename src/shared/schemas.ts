@@ -329,82 +329,186 @@ export const toolInputSchemas = {
   readCase: z.object({}).strict(),
   joinAsAgent: z
     .object({
-      name: z.string().trim().min(1).max(48),
+      name: z
+        .string()
+        .trim()
+        .min(1)
+        .max(48)
+        .describe("Display name for the agent in this notebook."),
     })
     .strict(),
   addFinding: z
     .object({
-      body: z.string().trim().min(1).max(ENTRY_BODY_MAX),
+      body: z
+        .string()
+        .trim()
+        .min(1)
+        .max(ENTRY_BODY_MAX)
+        .describe("Verified evidence or an observed fact."),
     })
     .strict(),
   addHypothesis: z
     .object({
-      title: z.string().trim().min(1).max(180),
-      detail: z.string().trim().max(HYPOTHESIS_DETAIL_MAX).default(""),
-      confidence: ConfidenceSchema.default("medium"),
+      title: z
+        .string()
+        .trim()
+        .min(1)
+        .max(180)
+        .describe("Short name for the possible explanation."),
+      detail: z
+        .string()
+        .trim()
+        .max(HYPOTHESIS_DETAIL_MAX)
+        .default("")
+        .describe("Supporting detail for the explanation."),
+      confidence: ConfidenceSchema.default("medium").describe(
+        "Confidence in the explanation: low, medium, or high.",
+      ),
     })
     .strict(),
   createTask: z
     .object({
-      title: z.string().trim().min(1).max(240),
-      assignee: z.string().trim().max(48).optional(),
+      title: z
+        .string()
+        .trim()
+        .min(1)
+        .max(240)
+        .describe("What the task is."),
+      assignee: z
+        .string()
+        .trim()
+        .max(48)
+        .optional()
+        .describe("Optional person the task is assigned to."),
     })
     .strict(),
   updateTask: z
     .object({
-      taskId: z.string().min(1).max(100),
-      status: TaskStatusSchema,
+      taskId: z
+        .string()
+        .min(1)
+        .max(100)
+        .describe("Id of an existing task in this notebook."),
+      status: TaskStatusSchema.describe(
+        "New task status: open, doing, or done.",
+      ),
     })
     .strict(),
   postUpdate: z
     .object({
-      body: z.string().trim().min(1).max(ENTRY_BODY_MAX),
+      body: z
+        .string()
+        .trim()
+        .min(1)
+        .max(ENTRY_BODY_MAX)
+        .describe("Progress update. Markdown and mermaid diagrams are rendered."),
     })
     .strict(),
   proposeResolution: z
     .object({
-      body: z.string().trim().min(1).max(ENTRY_BODY_MAX),
+      body: z
+        .string()
+        .trim()
+        .min(1)
+        .max(ENTRY_BODY_MAX)
+        .describe("Proposed resolution for a person to accept or reject."),
     })
     .strict(),
   addNote: z
     .object({
-      sectionId: z.string().min(1).max(100),
-      body: z.string().trim().min(1).max(NOTE_BODY_MAX),
+      sectionId: z
+        .string()
+        .min(1)
+        .max(100)
+        .describe("Id of a section whose type is note."),
+      body: z
+        .string()
+        .trim()
+        .min(1)
+        .max(NOTE_BODY_MAX)
+        .describe("Markdown to append. Mermaid diagrams in fenced mermaid blocks are rendered."),
     })
     .strict(),
   reviseNote: z
     .object({
-      noteId: z.string().min(1).max(100),
-      body: z.string().trim().min(1).max(NOTE_BODY_MAX),
+      noteId: z
+        .string()
+        .min(1)
+        .max(100)
+        .describe("Id of a sent note in this notebook."),
+      body: z
+        .string()
+        .trim()
+        .min(1)
+        .max(NOTE_BODY_MAX)
+        .describe("Replacement markdown for the note."),
     })
     .strict(),
   toggleNoteTask: z
     .object({
-      noteId: z.string().min(1).max(100),
-      taskIndex: z.number().int().nonnegative().max(200),
+      noteId: z
+        .string()
+        .min(1)
+        .max(100)
+        .describe("Id of a sent note that contains a markdown task list."),
+      taskIndex: z
+        .number()
+        .int()
+        .nonnegative()
+        .max(200)
+        .describe("0-based checkbox in that note, skipping fenced code."),
     })
     .strict(),
   addDecision: z
     .object({
-      sectionId: z.string().min(1).max(100),
-      body: z.string().trim().min(1).max(NOTE_BODY_MAX),
+      sectionId: z
+        .string()
+        .min(1)
+        .max(100)
+        .describe("Id of a section whose type is decisions."),
+      body: z
+        .string()
+        .trim()
+        .min(1)
+        .max(NOTE_BODY_MAX)
+        .describe("Decision text. Markdown and mermaid diagrams are rendered."),
     })
     .strict(),
   addChecklistItem: z
     .object({
-      sectionId: z.string().min(1).max(100),
-      title: z.string().trim().min(1).max(240),
+      sectionId: z
+        .string()
+        .min(1)
+        .max(100)
+        .describe("Id of a section whose type is checklist."),
+      title: z
+        .string()
+        .trim()
+        .min(1)
+        .max(240)
+        .describe("Checklist item text."),
     })
     .strict(),
   toggleChecklistItem: z
     .object({
-      itemId: z.string().min(1).max(100),
+      itemId: z
+        .string()
+        .min(1)
+        .max(100)
+        .describe("Id of a checklist item in this notebook."),
     })
     .strict(),
   addSection: z
     .object({
-      type: SectionTypeSchema,
-      title: z.string().trim().min(1).max(80),
+      type: SectionTypeSchema.describe(
+        "Section type: note, timeline, findings, hypotheses, tasks, checklist, or decisions.",
+      ),
+      title: z
+        .string()
+        .trim()
+        .min(1)
+        .max(80)
+        .describe("Label shown on the section."),
     })
     .strict(),
   setSections: z
@@ -413,26 +517,52 @@ export const toolInputSchemas = {
         .array(
           z
             .object({
-              type: SectionTypeSchema,
-              title: z.string().trim().min(1).max(80),
+              type: SectionTypeSchema.describe(
+                "Section type: note, timeline, findings, hypotheses, tasks, checklist, or decisions.",
+              ),
+              title: z
+                .string()
+                .trim()
+                .min(1)
+                .max(80)
+                .describe("Label shown on the section."),
             })
             .strict(),
         )
-        .max(20),
+        .max(20)
+        .describe("Ordered sections that replace the current layout."),
     })
     .strict(),
   listNotebooks: z.object({}).strict(),
-  openNotebook: z
+  showNotebook: z
     .object({
-      notebookId: z.string().min(1).max(100),
+      notebookId: z
+        .string()
+        .min(1)
+        .max(100)
+        .describe("Id of a notebook stored in this browser."),
     })
     .strict(),
   createNotebook: z
     .object({
-      kind: CaseKindSchema.default("custom"),
-      title: z.string().trim().min(3).max(120),
-      summary: z.string().trim().max(600).default(""),
-      severity: SeveritySchema.optional(),
+      kind: CaseKindSchema.default("custom").describe(
+        "Notebook type: plan, campaign, meeting, incident, bug, feature, or custom.",
+      ),
+      title: z
+        .string()
+        .trim()
+        .min(3)
+        .max(120)
+        .describe("Notebook title, 3 to 120 characters."),
+      summary: z
+        .string()
+        .trim()
+        .max(600)
+        .default("")
+        .describe("Optional short summary, up to 600 characters."),
+      severity: SeveritySchema.optional().describe(
+        "Severity for incident and bug notebooks: low, medium, high, or critical.",
+      ),
     })
     .strict(),
 } as const;

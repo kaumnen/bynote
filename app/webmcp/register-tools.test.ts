@@ -84,6 +84,15 @@ describe("WebMCP tools", () => {
     expect(tools.get("add_finding")?.inputSchema).toMatchObject({
       type: "object",
     });
+    expect(tools.get("read_case")?.annotations).toEqual({
+      readOnlyHint: true,
+      untrustedContentHint: true,
+    });
+    expect(tools.get("join_as_agent")?.inputSchema).toMatchObject({
+      properties: {
+        name: { type: "string", description: expect.any(String) },
+      },
+    });
 
     await tools.get("join_as_agent")?.execute({ name: "Scout" });
     await tools

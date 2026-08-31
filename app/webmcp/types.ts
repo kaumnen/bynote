@@ -3,10 +3,17 @@ export type WebMcpToolResult = {
   structuredContent?: unknown;
 };
 
+export type WebMcpToolAnnotations = {
+  readOnlyHint?: boolean;
+  untrustedContentHint?: boolean;
+};
+
 export type WebMcpTool = {
   name: string;
+  title?: string;
   description: string;
   inputSchema?: Record<string, unknown>;
+  annotations?: WebMcpToolAnnotations;
   execute: (
     input: unknown,
     options?: { signal?: AbortSignal },

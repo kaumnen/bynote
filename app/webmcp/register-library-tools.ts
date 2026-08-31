@@ -45,9 +45,14 @@ export function registerLibraryTools({
   const tools: WebMcpTool[] = [
     {
       name: "list_notebooks",
+      title: "List notebooks",
       description:
-        "List notebooks stored in this browser. Use open_notebook with an id to work on one. If you are already on a notebook page, read_case is that open notebook.",
+        "Lists notebooks stored in this browser. Returns each notebook's id, title, kind, and which notebook this tab currently shows.",
       inputSchema: schema(toolInputSchemas.listNotebooks),
+      annotations: {
+        readOnlyHint: true,
+        untrustedContentHint: true,
+      },
       execute() {
         const notebooks = list();
         return result("Notebooks on this browser", {
@@ -57,12 +62,16 @@ export function registerLibraryTools({
       },
     },
     {
-      name: "open_notebook",
+      name: "show_notebook",
+      title: "Show notebook",
       description:
-        "Open a notebook in this tab by id from list_notebooks. The page navigates to that notebook so writing tools apply to it.",
-      inputSchema: schema(toolInputSchemas.openNotebook),
+        "Shows a notebook in this tab by id. Returns the notebook summary and navigates the page to that notebook.",
+      inputSchema: schema(toolInputSchemas.showNotebook),
+      annotations: {
+        untrustedContentHint: true,
+      },
       async execute(input) {
-        const parsed = toolInputSchemas.openNotebook.parse(input);
+        const parsed = toolInputSchemas.showNotebook.parse(input);
         if (!isNotebookId(parsed.notebookId)) {
           throw new Error("Unknown notebook id");
         }
@@ -83,8 +92,9 @@ export function registerLibraryTools({
     },
     {
       name: "create_notebook",
+      title: "Create notebook",
       description:
-        "Create a notebook in this browser and open it. kind is plan, campaign, meeting, incident, bug, feature, or custom. Prefer plan, campaign, or meeting for GTM and everyday work. Use incident or bug for engineering. Severity only matters for incident and bug.",
+        "Creates a notebook in this browser, opens it in this tab, and returns the new notebook's id, title, and kind.",
       inputSchema: schema(toolInputSchemas.createNotebook),
       execute(input) {
         const parsed = toolInputSchemas.createNotebook.parse(input);

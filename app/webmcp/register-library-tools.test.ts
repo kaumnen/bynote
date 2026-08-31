@@ -82,7 +82,7 @@ describe("WebMCP library tools", () => {
 
     expect(registration.toolNames).toEqual([
       "list_notebooks",
-      "open_notebook",
+      "show_notebook",
       "create_notebook",
     ]);
 
@@ -92,7 +92,7 @@ describe("WebMCP library tools", () => {
       openId: null,
     });
 
-    await tools.get("open_notebook")?.execute({ notebookId: first.id });
+    await tools.get("show_notebook")?.execute({ notebookId: first.id });
     expect(opened).toEqual([first.id]);
 
     const created = await tools.get("create_notebook")?.execute({
@@ -109,8 +109,26 @@ describe("WebMCP library tools", () => {
     );
 
     await expect(
-      tools.get("open_notebook")?.execute({ notebookId: "nope" }),
+      tools.get("show_notebook")?.execute({ notebookId: "nope" }),
     ).rejects.toThrow("Unknown notebook id");
+
+    expect(tools.get("list_notebooks")?.annotations).toEqual({
+      readOnlyHint: true,
+      untrustedContentHint: true,
+    });
+    expect(tools.get("show_notebook")?.inputSchema).toMatchObject({
+      properties: {
+        notebookId: { type: "string", description: expect.any(String) },
+      },
+    });
+    expect(tools.get("create_notebook")?.inputSchema).toMatchObject({
+      properties: {
+        kind: { description: expect.any(String) },
+        title: { description: expect.any(String) },
+        summary: { description: expect.any(String) },
+        severity: { description: expect.any(String) },
+      },
+    });
 
     registration.dispose();
   });
