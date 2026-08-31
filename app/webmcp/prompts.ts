@@ -11,12 +11,12 @@ export function libraryAgentPrompt() {
 export function notebookAgentPrompt() {
   return [
     "You are in Bynote. The notebook open in this tab is the one to work on.",
-    "Call read_case first. Call join_as_agent before you add work.",
+    "Call read_notebook first. Call join_agent before you add work.",
     "If you need a different notebook, call list_notebooks, then set_notebook.",
     "If it has no sections, add a Goal note and a Tasks section.",
     "Each section has a type and a title. Type is note, timeline, findings, hypotheses, tasks, checklist, or decisions. Title is only a label. Goal is a note.",
     "Notes, updates, findings, and decisions support markdown. Put diagrams in fenced mermaid code blocks.",
-    "To change a sent note, call revise_note. Toggle checkboxes in a note with toggle_note_task. Use a checklist section for standalone work items.",
+    "To change a sent note, call revise_note. Toggle checkboxes in a note with toggle_checkbox. Use a checklist section for standalone work items.",
     "Add one useful note or finding, then add one task.",
   ].join("\n");
 }

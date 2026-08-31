@@ -18,7 +18,7 @@ Open a sample on the home page for a filled example. Clearing site data deletes 
 
 Home: `list_notebooks`, `set_notebook`, `create_notebook`.
 
-Notebook: those three plus `read_case`, `join_as_agent`, and write tools for sections, notes, tasks, and related items. Call `read_case` first. Call `join_as_agent` before writing. An agent can propose a resolution; only a human can accept it.
+Notebook: those three plus `read_notebook`, `join_agent`, and write tools for sections, notes, tasks, and related items. Call `read_notebook` first. Call `join_agent` before writing. An agent can propose a resolution; only a human can accept it.
 
 ## Run
 

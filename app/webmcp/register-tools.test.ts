@@ -64,8 +64,8 @@ describe("WebMCP tools", () => {
     await registration.ready;
 
     expect(registration.toolNames).toEqual([
-      "read_case",
-      "join_as_agent",
+      "read_notebook",
+      "join_agent",
       "set_sections",
       "add_section",
       "add_finding",
@@ -76,25 +76,25 @@ describe("WebMCP tools", () => {
       "propose_resolution",
       "add_note",
       "revise_note",
-      "toggle_note_task",
+      "toggle_checkbox",
       "add_decision",
-      "add_checklist_item",
-      "toggle_checklist_item",
+      "add_check",
+      "toggle_check",
     ]);
     expect(tools.get("add_finding")?.inputSchema).toMatchObject({
       type: "object",
     });
-    expect(tools.get("read_case")?.annotations).toEqual({
+    expect(tools.get("read_notebook")?.annotations).toEqual({
       readOnlyHint: true,
       untrustedContentHint: true,
     });
-    expect(tools.get("join_as_agent")?.inputSchema).toMatchObject({
+    expect(tools.get("join_agent")?.inputSchema).toMatchObject({
       properties: {
         name: { type: "string", description: expect.any(String) },
       },
     });
 
-    await tools.get("join_as_agent")?.execute({ name: "Scout" });
+    await tools.get("join_agent")?.execute({ name: "Scout" });
     await tools
       .get("add_finding")
       ?.execute({ body: "Cache misses increased after release 214." });
@@ -107,7 +107,7 @@ describe("WebMCP tools", () => {
       noteId: current.notes[0]?.id,
       body: "- [ ] Ping legal\n- [ ] Ship one-pager",
     });
-    await tools.get("toggle_note_task")?.execute({
+    await tools.get("toggle_checkbox")?.execute({
       noteId: current.notes[0]?.id,
       taskIndex: 0,
     });
@@ -120,7 +120,7 @@ describe("WebMCP tools", () => {
     });
     expect(finding?.source).toBe("webmcp");
 
-    const readResult = await tools.get("read_case")?.execute({});
+    const readResult = await tools.get("read_notebook")?.execute({});
     expect(readResult?.structuredContent).toMatchObject({
       id: "case-1",
       revision: 6,

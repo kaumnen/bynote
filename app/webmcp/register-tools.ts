@@ -90,7 +90,7 @@ export function registerCaseTools({
 
   const tools: WebMcpTool[] = [
     {
-      name: "read_case",
+      name: "read_notebook",
       title: "Read notebook",
       description:
         "Reads the notebook open in this tab. Returns id, kind, title, summary, severity, status, revision, sections (type, typeLabel, hint, title), entries, hypotheses, tasks, notes, checklists, decisions, and participants.",
@@ -104,8 +104,8 @@ export function registerCaseTools({
       },
     },
     {
-      name: "join_as_agent",
-      title: "Join as agent",
+      name: "join_agent",
+      title: "Join agent",
       description:
         "Joins the active notebook under an agent name. Returns the agent identity and notebook revision.",
       inputSchema: schema(toolInputSchemas.joinAsAgent),
@@ -295,8 +295,8 @@ export function registerCaseTools({
       },
     },
     {
-      name: "toggle_note_task",
-      title: "Toggle note task",
+      name: "toggle_checkbox",
+      title: "Toggle checkbox",
       description:
         "Toggles a markdown task list checkbox in a sent note. taskIndex is the 0-based checkbox in that note, skipping fenced code. Returns the updated note and revision.",
       inputSchema: schema(toolInputSchemas.toggleNoteTask),
@@ -335,7 +335,7 @@ export function registerCaseTools({
       },
     },
     {
-      name: "add_checklist_item",
+      name: "add_check",
       title: "Add checklist item",
       description:
         "Adds an item to a checklist section. Returns the new item and revision.",
@@ -356,7 +356,7 @@ export function registerCaseTools({
       },
     },
     {
-      name: "toggle_checklist_item",
+      name: "toggle_check",
       title: "Toggle checklist item",
       description:
         "Toggles a checklist item done or not done. Returns the updated item and revision.",
